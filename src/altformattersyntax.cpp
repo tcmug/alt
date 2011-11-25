@@ -19,7 +19,7 @@ AltFormatterSyntax::AltFormatterSyntax()
 			block->setBackgroundColor(Qt::white);
 			block->addFormatterPair(new AltFormatterPair("[0-9]", "ENTER", "Character"));
 			block->addFormatterPair(new AltFormatterPair("\\<\\?php", "ENTER", "PHP"));
-			block->addFormatterPair(new AltFormatterPair("\\<", "ENTER", "Character"));
+			block->addFormatterPair(new AltFormatterPair("#", "ENTER", "#"));
 			BlockMap[block->getName()] = block;
 
 			block = new AltFormatterBlock("Character");
@@ -33,6 +33,12 @@ AltFormatterSyntax::AltFormatterSyntax()
 			block->setBackgroundColor(Qt::green);
 			block->addFormatterPair(new AltFormatterPair("\\?\\>", "ENTER_AFTER", "POP"));
 			BlockMap[block->getName()] = block;		
+
+			block = new AltFormatterBlock("#");
+			block->setTextColor(Qt::green);
+			block->setBackgroundColor(Qt::white);
+			block->addFormatterPair(new AltFormatterPair("[^#a-zA-Z]", "ENTER_AFTER", "POP"));
+			BlockMap[block->getName()] = block;
 }
 
 

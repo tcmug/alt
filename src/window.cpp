@@ -8,8 +8,11 @@ Window::Window()
 	altContextWidget = new AltContext();
     QHBoxLayout *mainLayout = new QHBoxLayout;
     mainLayout->setMargin(0);
-    mainLayout->addWidget(altContextWidget);
-	
+
+		QScrollArea *scrollArea = new QScrollArea();
+    scrollArea->setBackgroundRole(QPalette::Dark);
+    scrollArea->setWidget(altContextWidget);
+		mainLayout->addWidget(scrollArea);
     setLayout(mainLayout);
     setWindowTitle(tr("Alt"));
 }
@@ -19,7 +22,7 @@ void Window::keyPressEvent(QKeyEvent *e)
 if (e->key() == Qt::Key_Escape)
     close();
 else
-    QWidget::keyPressEvent(e);
+    altContextWidget->keyPressEvent(e);
 }
 
 
