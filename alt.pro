@@ -6,10 +6,10 @@ VPATH += ../shared
 INCLUDEPATH += ../shared
 
 # Input
-HEADERS += src/window.h src/altcontext.h src/altformattersyntax.h
-SOURCES += src/main.cpp src/window.cpp src/altcontext.cpp src/altformattersyntax.cpp
+HEADERS += src/window.h src/altcontext.h src/altformattersyntax.h src/altfilerow.h
+SOURCES += src/main.cpp src/window.cpp src/altcontext.cpp src/altformattersyntax.cpp src/altfilerow.cpp
 
-QT += opengl
+# QT += opengl
 
 #target.path = $$[QT_INSTALL_EXAMPLES]/opengl/hellogl
 #sources.files = $$SOURCES $$HEADERS $$RESOURCES $$FORMS hellogl.pro

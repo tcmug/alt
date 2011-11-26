@@ -7,34 +7,114 @@
 #include <QTextStream>
 
 #include "altcontext.h"
+#include "altformattersyntax.h"
+#include "altfilerow.h"
 
-AltFileRow::AltFileRow(const QString &str)
+
+class AltFormatterBlockIterator 
 {
-	String = str;
+	protected:
+		
+		AltContext *Context;
+  	const AltFormatterBlock *Block;
+		int Line;
+		int Column;
+		int AtCharacter;
+		QString LineString;
+		QStack <QString> LineStack;
+		QString Part;
+
+	public:
+
+		AltFormatterBlockIterator(AltContext *c);
+		
+		bool setLineNumber(int row);
+		bool next();
+		int getRow();
+		int getColumn();
+		const QString &getPart();
+		const AltFormatterBlock *getFormatterBlock();
+		int blockLength() const;
+
+};
+
+
+AltFormatterBlockIterator::AltFormatterBlockIterator(AltContext *c)
+{
+	Context = c;
+	AtCharacter = 0;
+	Column = 0;
+  Line = -1; // since next increments always by +1
 }
 
-const QString &AltFileRow::getString()
+
+bool AltFormatterBlockIterator::setLineNumber(int n) 
 {
-	return String;
+	Line = n - 1;
+	return next();
 }
 
 
-void AltFileRow::setString(const QString &str)
+bool AltFormatterBlockIterator::next()
 {
-	String = str;	
+	// next line
+	if (Line == -1 || AtCharacter >= LineString.length()) 
+	{ 
+		if (Line >= 0)
+		{
+			// Store existing Stack
+			Context->Lines[Line].setStack(LineStack);
+		}
+
+    Line++;
+
+	  if (Line == Context->Lines.size()) 
+    {
+			// We're at the end
+	  	return false;
+    }
+		else if (Line == 0) 
+		{
+			LineStack.clear();
+			LineStack.push_back("ROOT");
+		}
+		else 
+		{
+		  LineStack = Context->Lines[Line-1].getStack();
+		}
+
+		// Grab line data		
+		AtCharacter = 0;
+		LineString = Context->Lines[Line].getString();
+  }
+
+	Column = AtCharacter;
+  Block = Context->Formatter->getFormatterBlock(LineStack.top());
+	Part = Context->Formatter->formatize(LineString, AtCharacter, LineStack);
+	return true;
 }
 
 
-void AltFileRow::setStack(const QStack <QString> &s)
+int AltFormatterBlockIterator::getRow()
 {
-	Stack = s;
+	return Line;
 }
 
-
-const QStack <QString> &AltFileRow::getStack()
+int AltFormatterBlockIterator::getColumn()
 {
-	return Stack;
+	return Column;
 }
+
+const QString &AltFormatterBlockIterator::getPart()
+{
+	return Part;
+}
+
+const AltFormatterBlock *AltFormatterBlockIterator::getFormatterBlock()
+{
+	return Block;
+}
+
 
 void AltContext::keyPressEvent(QKeyEvent *e)
 {
@@ -73,7 +153,7 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			 line = line.replace("\t", "  ");
        Lines.push_back(AltFileRow(line));
     }
-		resize(500, FontMetrics->height() * (Lines.size() + 1));
+		resize(500, FontMetrics->height() * (Lines.size()));
 		repaint();
 		CaretPosition = QPoint(0, 0);
 		break;
@@ -101,6 +181,8 @@ AltContext::AltContext(QWidget *parent)
 	//setFocus();
   //setDisabled(false);
 	setFocusPolicy(Qt::StrongFocus);
+
+	Formatter = new AltFormatterSyntax();
 }
 
 QSize AltContext::minimumSizeHint() const
@@ -113,102 +195,69 @@ QSize AltContext::sizeHint() const
   return QSize(400, 200);
 }
 
-#include "altformattersyntax.h"
 
 void AltContext::paintEvent(QPaintEvent *)
 {
 	QPainter painter(this);
-  QPoint point(0, 20);
-
 	painter.setFont(*Font);
-
-  static AltFormatterSyntax *a = 0;
-	if (!a) 
-	{
-	  a = new AltFormatterSyntax();
-  }
 	
 	const AltFormatterBlock *b;
 
-	QStack <QString> stack;
-	stack.push("ROOT");
+	QPoint point;
+	QString output, str;
 
-  int at = 0;
-
-  QString str;
-	QString output;
-
-	QVector <AltFileRow>::iterator i;
-
-	QPoint Scroll(0, 0);
+	//int wh = parentWidget()->height();
+	int LineHeight = FontMetrics->height();
+	int Line = -1;
+	int Column = 0;
+	int sy = y() - LineHeight;
 	
-	point = QPoint(Scroll.x(), Scroll.y() + FontMetrics->height());
+	AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
+	QPoint Point(0, -LineHeight);
+	Point.setY(-LineHeight);
 
-	int sy = y();
-	int wh = parentWidget()->height();
-	bool draw;
-	int LineNumber = 0;
-	int lineHeight = FontMetrics->height();
+	while (bi->next()) {
 	
-	i = Lines.begin();
-	
-	while (sy < wh && i != Lines.end()) {
-		str = (*i).getString();
-		at = 0;
-		draw = sy > -lineHeight;
-  	while (at < str.length()) 
-  	{
-  		b = a->getFormatterBlock(stack.top());
-    	output = a->formatize(str, at, stack);
-			if (draw)
-			{
-  		  painter.setPen(b->getTextColor());
-  		  painter.setBackgroundMode(Qt::OpaqueMode);
-  		  painter.setBackground(QBrush(b->getBackgroundColor()));
-  		  painter.drawText(point, output);
-				if (LineNumber == CaretPosition.y())
-				{	
-					QPainter::CompositionMode old = painter.compositionMode();
-					painter.setCompositionMode(QPainter::CompositionMode_Difference);
-  		    painter.setPen(Qt::white);
-					painter.setBrush(QBrush(Qt::white));
-				  painter.drawRect(CaretPosition.x() * 10, sy, 20, lineHeight);
-					painter.setCompositionMode(old);
-				} 
-			}
-    	point += QPoint(FontMetrics->width(output), 0);
-  	}
-		(*i).setStack(stack);
-		point = QPoint(Scroll.x(), point.y() + lineHeight);
-		sy += lineHeight;
-		LineNumber++;
-		i++;
-	}
+		if (Line != bi->getRow())
+		{
+			Line = bi->getRow();
+		  Point = QPoint(0, Point.y() + LineHeight);
+			sy += LineHeight;
+		}
+		
+		b = bi->getFormatterBlock();
+		Column = bi->getColumn();
+  	
+		if (sy > -LineHeight) {
+
+  		painter.setPen(b->getTextColor());
+    	painter.setBackgroundMode(Qt::OpaqueMode);
+    	painter.setBackground(QBrush(b->getBackgroundColor()));
+  	  painter.drawText(Point + QPoint(0, LineHeight), bi->getPart());
+
+      if ((Line == CaretPosition.y()) &&
+          (CaretPosition.x() >= Column) &&
+          (CaretPosition.x() <= Column + bi->getPart().length()))
+	  	{
+
+      	QPainter::CompositionMode old = painter.compositionMode();
+	  		//	painter.setCompositionMode(QPainter::CompositionMode_Difference);
+    		painter.setPen(Qt::black);
+	  		painter.setBrush(QBrush(Qt::black));
+      	QRect temp = QRect(
+	  			Point.x() + FontMetrics->width(bi->getPart(), CaretPosition.x() - Column), 
+		  		Point.y(),
+		  		2,
+		  		LineHeight
+	  		);
+	  		painter.drawRect(temp);
+		  	painter.setCompositionMode(old);
+		  }
+		}
+    
+		Point += QPoint(FontMetrics->width(bi->getPart()), 0);
+  }
+
+
 }
-
-class AltFormatter {
-	protected:
-		int State;
-		QPainter Painter;
-		QFontMetrics FontMetrics;
-		QFont Font;
-		QPoint At;
-
-	public:
-	/*
-		AltFormatter(QPainter);
-		void setFont(const QString &str);
-		void setPosition(const QPoint &pos):
-		void setTextColor(const QColor &color);
-		void setBgColor(const QColor &color);
-		void draw(QString &str);
-*/
-
-};
-
-
-
-
-
-
 

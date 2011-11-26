@@ -8,28 +8,14 @@
 #include <QStack>
 #include <QScrollArea>
 
-class AltFileRow 
-{
-	private:
-	  QString String;
-		QStack <QString> Stack;
-		
-	public:
+#include "altfilerow.h"
 
-		AltFileRow(const QString &str = "");
-	
-		const QString &getString();
-		void setString(const QString &str);
-		void setStack(const QStack <QString> &stack);
-		const QStack <QString> &getStack();
-
-
-
-};
-
+class AltFormatterSyntax;
 
 class AltContext : public QWidget
 {
+	friend class AltFormatterBlockIterator;
+
   Q_OBJECT
   protected:
 
@@ -40,13 +26,16 @@ class AltContext : public QWidget
 		QVector <AltFileRow> Lines;
 		QPoint CaretPosition;
 
-  public:
-   QSize minimumSizeHint() const;
-	      QSize sizeHint() const;
-				
-  AltContext(QWidget *parent = 0);
+		AltFormatterSyntax *Formatter;
 
-	void keyPressEvent(QKeyEvent *e);
+  public:
+
+    QSize minimumSizeHint() const;
+	  QSize sizeHint() const;
+				
+    AltContext(QWidget *parent = 0);
+
+	  void keyPressEvent(QKeyEvent *e);
 
   protected:
 
