@@ -6,8 +6,8 @@ VPATH += ../shared
 INCLUDEPATH += ../shared
 
 # Input
-HEADERS += src/window.h src/altcontext.h src/altformattersyntax.h src/altfilerow.h
-SOURCES += src/main.cpp src/window.cpp src/altcontext.cpp src/altformattersyntax.cpp src/altfilerow.cpp
+HEADERS += src/window.h src/altcontext.h src/altformattersyntax.h src/altfilerow.h src/altformatterblockiterator.cpp
+SOURCES += src/main.cpp src/window.cpp src/altcontext.cpp src/altformattersyntax.cpp src/altfilerow.cpp src/altformatterblockiterator.cpp
 
 # QT += opengl
 
