@@ -29,3 +29,13 @@ const QStack <QString> &AltFileRow::getStack()
 	return Stack;
 }
 
+
+void AltFileRow::insert(int position, const QString &str)
+{
+  if (position > String.length()) {
+		QString padding(" ");
+		String.insert(String.length(), padding.repeated(position - String.length()));
+	}
+	String.insert(position, str);
+}
+

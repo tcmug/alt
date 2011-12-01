@@ -32,38 +32,114 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			CaretPosition += QPoint(1, 0);
 			repaint();
 		break;
-		case Qt::Key_F1:
-  QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
+		case Qt::Key_F1: {
+      QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
                                                  "",
                                                  tr("Files (*.*)"));
-
-  QFile file(fileName);
-     if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
-         return;
- 		Lines.clear();
-     QTextStream in(&file);
-		 Lines.reserve(1000);
-		 QString line;
-     while (!in.atEnd()) {
-       line = in.readLine();
-			 line = line.replace("\t", "  ");
-       Lines.push_back(AltFileRow(line));
-    }
-		resize(500, FontMetrics->height() * (Lines.size()));
-		repaint();
-		CaretPosition = QPoint(0, 0);
+			this->openFile(fileName);
+			}
 		break;
+		case Qt::Key_Backspace:
+		  // erase from file point - to file point
+			//this->erase(CaretPosition);
+		break;
+		case Qt::Key_F2:
+			{
+			this->insert(CaretPosition, "This\nis\na multiline insert");
+			repaint();
+		  }
+		break;
+		default:
+			{
+			QString str = e->text();
+			this->insert(CaretPosition, str);
+			CaretPosition.setX(CaretPosition.x() + str.length());
+			repaint();
+			}
 	}
 
-	if (CaretPosition.x() < 0) {
+	if (CaretPosition.x() < 0) 
+	{
 		CaretPosition.setX(0);
 	}
-	if (CaretPosition.y() < 0) {
+	else if (CaretPosition.x() >= 1000) 
+	{
+		CaretPosition.setX(1000);
+	}
+
+	if (CaretPosition.y() < 0) 
+	{
 		CaretPosition.setY(0);
 	}
+	else if (CaretPosition.y() >= Lines.size()) 
+	{
+		CaretPosition.setY(Lines.size() - 1);
+	}
+	
 /*} else {
 	QWidget::keyPressEvent(e);
 }*/
+}
+
+
+void AltContext::insert(const QPoint &pointx, const QString &str)
+{
+/*
+this willbe split
+->
+this will this was
+inserted
+to the file be split
+
+*/
+	QPoint point = pointx;
+	QString temp;
+	QStringList List = str.split("\n");
+	if (List.size() > 1) 
+	{
+		Lines.insert(point.y() + 1, List.size() - 1, AltFileRow());
+		temp = Lines[point.y()].getString();
+		if (temp.length() > point.x()) {
+			Lines[point.y() + List.size() - 1].setString(temp.right(temp.length() - point.x()));
+			Lines[point.y()].setString(temp.left(point.x()));
+		}
+	  for (int i = 0; i < List.size(); ++i) 
+    {
+			temp = List[i];
+		  Lines[point.y()].insert(point.x(), temp);
+		  point.setX(0);
+		  point.setY(point.y() + 1);
+	  }
+		return;
+	} 
+	else 
+	{
+		temp = str;
+	}
+	
+	Lines[point.y()].insert(point.x(), temp);
+	point.setX(point.x() + temp.length());
+	
+}
+
+void AltContext::openFile(const QString &fileName) 
+{
+  QFile file(fileName);
+  if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    return;
+ 	Lines.clear();
+  QTextStream in(&file);
+	Lines.reserve(1000);
+	QString line;
+  while (!in.atEnd()) 
+	{
+    line = in.readLine();
+    line = line.replace("\t", "  ");
+    Lines.push_back(AltFileRow(line));
+  }
+	resize(500, FontMetrics->height() * (Lines.size()));
+	repaint();
+	CaretPosition = QPoint(0, 0);
 }
 
 AltContext::AltContext(QWidget *parent)
@@ -79,6 +155,7 @@ AltContext::AltContext(QWidget *parent)
 	setFocusPolicy(Qt::StrongFocus);
 
 	Formatter = new AltFormatterSyntax();
+	Lines.push_back(AltFileRow(""));
 }
 
 QSize AltContext::minimumSizeHint() const
