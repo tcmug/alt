@@ -39,3 +39,12 @@ void AltFileRow::insert(int position, const QString &str)
 	String.insert(position, str);
 }
 
+
+void AltFileRow::erase(int from, int to)
+{
+	String = String.mid(0, from) + String.mid(to);
+}
+
+
+
+

@@ -41,85 +41,137 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 		break;
 		case Qt::Key_Backspace:
 		  // erase from file point - to file point
-			//this->erase(CaretPosition);
+			{
+			QPoint From = CaretPosition + QPoint(-1, 0);
+			if (From.x() < 0) 
+			{
+				if (From.y() == 0)
+				  // do nothing as were on the 1st line
+  				break;
+				From.setY(From.y() - 1);
+				From.setX(Lines[From.y()].getString().length());
+			}
+			CaretPosition = this->erase(From, CaretPosition);
+			repaint();
+		  }
+		break;
+		case Qt::Key_Enter:
+		case Qt::Key_Return:
+			CaretPosition = this->insert(CaretPosition, "\n");
+			repaint();
 		break;
 		case Qt::Key_F2:
 			{
-			this->insert(CaretPosition, "This\nis\na multiline insert");
+			CaretPosition = this->insert(CaretPosition, "This\nis\na multiline insert");
 			repaint();
 		  }
 		break;
 		default:
 			{
-			QString str = e->text();
-			this->insert(CaretPosition, str);
-			CaretPosition.setX(CaretPosition.x() + str.length());
+			CaretPosition = this->insert(CaretPosition, e->text());
 			repaint();
 			}
 	}
 
+	printf("%i %i\n", CaretPosition.x(), CaretPosition.y());
+
 	if (CaretPosition.x() < 0) 
 	{
-		CaretPosition.setX(0);
-	}
-	else if (CaretPosition.x() >= 1000) 
-	{
-		CaretPosition.setX(1000);
+		if (CaretPosition.y() > 0) 
+		{
+	  	CaretPosition.setY(CaretPosition.y() - 1);
+  		CaretPosition.setX(Lines[CaretPosition.y()].getString().length());
+		}
+		else
+		{
+			CaretPosition.setX(0);
+		}
 	}
 
 	if (CaretPosition.y() < 0) 
 	{
 		CaretPosition.setY(0);
 	}
-	else if (CaretPosition.y() >= Lines.size()) 
+
+	if (CaretPosition.y() >= Lines.size()) 
 	{
 		CaretPosition.setY(Lines.size() - 1);
 	}
+
+	if (CaretPosition.x() > Lines[CaretPosition.y()].getString().length()) 
+	{
+		CaretPosition.setX(0);
+		CaretPosition.setY(CaretPosition.y() + 1);
+	}
 	
-/*} else {
-	QWidget::keyPressEvent(e);
-}*/
 }
 
 
-void AltContext::insert(const QPoint &pointx, const QString &str)
+QPoint AltContext::insert(const QPoint &p, const QString &str)
 {
-/*
-this willbe split
-->
-this will this was
-inserted
-to the file be split
-
-*/
-	QPoint point = pointx;
 	QString temp;
+	QPoint point = p;
 	QStringList List = str.split("\n");
+	int i;
 	if (List.size() > 1) 
 	{
 		Lines.insert(point.y() + 1, List.size() - 1, AltFileRow());
 		temp = Lines[point.y()].getString();
-		if (temp.length() > point.x()) {
+		if (temp.length() > point.x()) 
+		{
 			Lines[point.y() + List.size() - 1].setString(temp.right(temp.length() - point.x()));
 			Lines[point.y()].setString(temp.left(point.x()));
 		}
-	  for (int i = 0; i < List.size(); ++i) 
+	  for (i = 0; i < List.size()-1; ++i) 
     {
 			temp = List[i];
 		  Lines[point.y()].insert(point.x(), temp);
 		  point.setX(0);
 		  point.setY(point.y() + 1);
 	  }
-		return;
+		temp = List[i];
 	} 
 	else 
 	{
 		temp = str;
-	}
-	
+	}	
+
 	Lines[point.y()].insert(point.x(), temp);
 	point.setX(point.x() + temp.length());
-	
+
+	return point;
+}
+
+
+QPoint AltContext::erase(const QPoint &fromp, const QPoint &top)
+{
+	QPoint from = fromp;
+	QPoint to = top;
+
+	if (to.y() - from.y() > 1) 
+	{
+		// erase lines between
+		Lines.remove(to.y() + 1, to.y() - from.y() - 1);
+		to.setY(from.y() + 1);
+	}
+
+	if (to.y() - from.y() == 1) 
+	{
+		// on separate lines
+		Lines[from.y()].erase(from.x(), Lines[from.y()].getString().length());
+		Lines[to.y()].erase(0, to.x());
+		Lines[from.y()].setString(
+			Lines[from.y()].getString() +	Lines[to.y()].getString()
+		);
+		Lines.remove(to.y(), 1);
+	} 
+	else 
+	{
+		// on the same line
+		Lines[from.y()].erase(from.x(), to.x());
+	}
+
+	return from;
 }
 
 void AltContext::openFile(const QString &fileName) 

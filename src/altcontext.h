@@ -37,8 +37,10 @@ class AltContext : public QWidget
 
 	  void keyPressEvent(QKeyEvent *e);
 		void openFile(const QString &fileName);
-		void insert(const QPoint &point, const QString &str);	
-  protected:
+		QPoint insert(const QPoint &point, const QString &str);	
+		QPoint erase(const QPoint &from, const QPoint &to);
+
+	protected:
 
 };
 
