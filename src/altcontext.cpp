@@ -17,19 +17,55 @@ void AltContext::keyPressEvent(QKeyEvent *e)
   switch (e->key()) {
 	
 		case Qt::Key_Up:
-			CaretPosition += QPoint(0, -1);
+			if (CaretPosition.y() > 0) 
+			{
+				CaretPosition.setY(CaretPosition.y() - 1);
+      	if (CaretPosition.x() > Lines[CaretPosition.y()].getString().length()) 
+	      {
+		      CaretPosition.setX(Lines[CaretPosition.y()].getString().length());
+				}
+			}
 			repaint();
 		break;
 		case Qt::Key_Down:
-			CaretPosition += QPoint(0, 1);
+			if (CaretPosition.y() < Lines.size() - 1) 
+			{
+				CaretPosition.setY(CaretPosition.y() + 1);
+      	if (CaretPosition.x() > Lines[CaretPosition.y()].getString().length()) 
+	      {
+		      CaretPosition.setX(Lines[CaretPosition.y()].getString().length());
+				}
+			}
 			repaint();
 		break;
 		case Qt::Key_Left:
-			CaretPosition += QPoint(-1, 0);
+		  if (CaretPosition.x() == 0) 
+		  {
+				if (CaretPosition.y() > 0) 
+				{
+	    	  CaretPosition.setY(CaretPosition.y() - 1);
+  	 	    CaretPosition.setX(Lines[CaretPosition.y()].getString().length());
+				}
+		  } 
+			else
+			{
+				CaretPosition.setX(CaretPosition.x() - 1);
+			}
 			repaint();
 		break;
 		case Qt::Key_Right:
-			CaretPosition += QPoint(1, 0);
+			if (CaretPosition.x() == Lines[CaretPosition.y()].getString().length())
+			{
+				if (CaretPosition.y() < Lines.size() - 1)
+				{
+  				CaretPosition.setX(0);
+					CaretPosition.setY(CaretPosition.y() + 1);
+				}
+			}
+			else 
+			{
+				CaretPosition.setX(CaretPosition.x() + 1);
+			}
 			repaint();
 		break;
 		case Qt::Key_F1: {
@@ -73,37 +109,6 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 	}
 
-	printf("%i %i\n", CaretPosition.x(), CaretPosition.y());
-
-	if (CaretPosition.x() < 0) 
-	{
-		if (CaretPosition.y() > 0) 
-		{
-	  	CaretPosition.setY(CaretPosition.y() - 1);
-  		CaretPosition.setX(Lines[CaretPosition.y()].getString().length());
-		}
-		else
-		{
-			CaretPosition.setX(0);
-		}
-	}
-
-	if (CaretPosition.y() < 0) 
-	{
-		CaretPosition.setY(0);
-	}
-
-	if (CaretPosition.y() >= Lines.size()) 
-	{
-		CaretPosition.setY(Lines.size() - 1);
-	}
-
-	if (CaretPosition.x() > Lines[CaretPosition.y()].getString().length()) 
-	{
-		CaretPosition.setX(0);
-		CaretPosition.setY(CaretPosition.y() + 1);
-	}
-	
 }
 
 
