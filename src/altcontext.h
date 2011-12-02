@@ -30,6 +30,8 @@ class AltContext : public QWidget
 
   public:
 
+		void resizeSelf();
+
     QSize minimumSizeHint() const;
 	  QSize sizeHint() const;
 				

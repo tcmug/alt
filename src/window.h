@@ -14,6 +14,7 @@ class Window : public QWidget
 
   protected:
     void keyPressEvent(QKeyEvent *event);
+		void resizeEvent(QResizeEvent *event);
 
   private:
 		

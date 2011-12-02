@@ -13,7 +13,9 @@
 
 
 void AltContext::keyPressEvent(QKeyEvent *e)
-{
+{ 
+	int OldLines = Lines.size();
+
   switch (e->key()) {
 	
 		case Qt::Key_Up:
@@ -109,7 +111,19 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 	}
 
+	if (OldLines != Lines.size()) 
+	{
+		resizeSelf();
+	}
+
 }
+
+
+void AltContext::resizeSelf() 
+{
+	resize(this->parentWidget()->width(), FontMetrics->height() * (Lines.size()));
+}
+
 
 
 QPoint AltContext::insert(const QPoint &p, const QString &str)
@@ -194,7 +208,7 @@ void AltContext::openFile(const QString &fileName)
     line = line.replace("\t", "  ");
     Lines.push_back(AltFileRow(line));
   }
-	resize(500, FontMetrics->height() * (Lines.size()));
+	resizeSelf();
 	repaint();
 	CaretPosition = QPoint(0, 0);
 }
@@ -214,6 +228,8 @@ AltContext::AltContext(QWidget *parent)
 	Formatter = new AltFormatterSyntax();
 	Lines.push_back(AltFileRow(""));
 }
+
+
 
 QSize AltContext::minimumSizeHint() const
 {
