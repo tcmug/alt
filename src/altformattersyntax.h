@@ -21,6 +21,8 @@ class AltFormatterPair
     QString Target;
 };
 
+
+
 class AltFormatterBlock
 {
   protected:
@@ -47,6 +49,9 @@ class AltFormatterBlock
 		void addFormatterPair(AltFormatterPair *pair);
 		const AltFormatterPair *matchPatterns(const QString &str, int &at) const;
 };
+
+
+
 
 class AltFormatterSyntax
 {

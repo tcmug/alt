@@ -21,7 +21,7 @@ class AltFormatterBlockIterator
 
 		AltFormatterBlockIterator(AltContext *c);
 		
-		bool setLineNumber(int row);
+		bool setRow(int row);
 		bool next();
 		int getRow();
 		int getColumn();

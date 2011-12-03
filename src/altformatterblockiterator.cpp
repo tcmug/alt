@@ -14,10 +14,21 @@ AltFormatterBlockIterator::AltFormatterBlockIterator(AltContext *c)
 }
 
 
-bool AltFormatterBlockIterator::setLineNumber(int n) 
+bool AltFormatterBlockIterator::setRow(int n) 
 {
 	Line = n - 1;
-	return next();
+	if (Line >= 0)
+	{
+		// n line
+	  LineStack = Context->Lines[Line].getStack();
+	}
+	else
+	{
+		// 1st line
+		LineStack.clear();
+		LineStack.push_back("ROOT");
+	}
+	return true;
 }
 
 

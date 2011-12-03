@@ -230,6 +230,43 @@ AltContext::AltContext(QWidget *parent)
 }
 
 
+void AltContext::mousePressEvent(QMouseEvent *event)
+{
+	int Line = event->y() / FontMetrics->height();
+	CaretPosition.setY(Line);
+	
+	AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
+	bi->setRow(Line);
+	int x = 0, w, c = 0;
+	while (bi->next()) 
+	{
+		if (Line != bi->getRow())
+		  break;
+
+		const QString &temp = bi->getPart();
+		w = FontMetrics->width(temp);
+		if (event->x() < x + w) 
+		{			
+			for (int i = 0; i < temp.length(); i++)
+			{
+				if (event->x() < x) 
+				{
+					CaretPosition.setX(c + i - 1);
+					repaint();
+					return;
+				}
+				x += FontMetrics->width(temp[i]);
+			}
+		}
+		c += temp.length();
+		x += w;
+		//printf("%s\n", bi->getPart().toStdString().c_str());
+	}
+	CaretPosition.setX(Lines[CaretPosition.y()].getString().length());
+	repaint();
+}
+
+
 
 QSize AltContext::minimumSizeHint() const
 {

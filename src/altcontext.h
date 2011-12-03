@@ -23,6 +23,7 @@ class AltContext : public QWidget
 		QFontMetrics *FontMetrics;
 
     void paintEvent(QPaintEvent *event);
+
 		QVector <AltFileRow> Lines;
 		QPoint CaretPosition;
 
@@ -37,12 +38,12 @@ class AltContext : public QWidget
 				
     AltContext(QWidget *parent = 0);
 
-	  void keyPressEvent(QKeyEvent *e);
 		void openFile(const QString &fileName);
 		QPoint insert(const QPoint &point, const QString &str);	
 		QPoint erase(const QPoint &from, const QPoint &to);
 
-	protected:
+		void mousePressEvent(QMouseEvent * event);
+		void keyPressEvent(QKeyEvent *e);
 
 };
 
