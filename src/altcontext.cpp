@@ -10,7 +10,7 @@
 #include "altformattersyntax.h"
 #include "altfilerow.h"
 #include "altformatterblockiterator.h"
-
+#include "window.h"
 
 void AltContext::keyPressEvent(QKeyEvent *e)
 { 
@@ -106,6 +106,7 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 		break;
 		default:
 			{
+			//printf("%i\n",e->key());
 			CaretPosition = this->insert(CaretPosition, e->text());
 			repaint();
 			}
@@ -116,12 +117,14 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 		resizeSelf();
 	}
 
+	this->ensureCaretVisibility();
 }
 
 
 void AltContext::resizeSelf() 
 {
-	resize(this->parentWidget()->width(), FontMetrics->height() * (Lines.size()));
+  // FIXME: replace 1000 with widest line in the file
+	resize(1000, FontMetrics->height() * (Lines.size()) + 5);
 }
 
 
@@ -221,12 +224,64 @@ AltContext::AltContext(QWidget *parent)
 
   Font = new QFont("Courier", 12, QFont::Normal);
 	FontMetrics = new QFontMetrics(*Font);
-	//setFocus();
-  //setDisabled(false);
 	setFocusPolicy(Qt::StrongFocus);
 
 	Formatter = new AltFormatterSyntax();
 	Lines.push_back(AltFileRow(""));
+}
+
+
+void AltContext::ensureCaretVisibility()
+{
+  const AltFormatterBlock *b;
+
+  QPoint point;
+  QString output, str;
+
+  //int wh = parentWidget()->height();
+  int LineHeight = FontMetrics->height();
+  int Line = -1;
+  int Column = 0;
+  int sy = y() - LineHeight;
+
+  AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
+  QPoint Point(0, -LineHeight);
+  Point.setY(-LineHeight);
+
+  while (bi->next()) {
+
+    if (Line != bi->getRow())
+    {
+      Line = bi->getRow();
+      Point = QPoint(0, Point.y() + LineHeight);
+      sy += LineHeight;
+    }
+
+    b = bi->getFormatterBlock();
+    Column = bi->getColumn();
+
+    if (sy > -LineHeight) {
+
+      if ((Line == CaretPosition.y()) &&
+          (CaretPosition.x() >= Column) &&
+          (CaretPosition.x() <= Column + bi->getPart().length()))
+      {
+
+        QPoint temp(
+					Point.x() + FontMetrics->width(bi->getPart(), CaretPosition.x() - Column),
+          Point.y()
+        );
+         
+			  ((QScrollArea*)parentWidget()->parentWidget())->ensureVisible(temp.x(), temp.y());				
+				//printf("%i %i\n", temp.x(), temp.y());
+				repaint();
+        return;
+      }
+    }
+
+    Point += QPoint(FontMetrics->width(bi->getPart()), 0);
+  }
+
 }
 
 

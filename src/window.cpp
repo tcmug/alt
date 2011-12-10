@@ -5,20 +5,21 @@
 
 Window::Window()
 {
-	altContextWidget = new AltContext();
-  QHBoxLayout *mainLayout = new QHBoxLayout;
-  mainLayout->setMargin(0);
-	QScrollArea *scrollArea = new QScrollArea();
-  scrollArea->setBackgroundRole(QPalette::Dark);
-  scrollArea->setWidget(altContextWidget);
-  mainLayout->addWidget(scrollArea);
-  setLayout(mainLayout);
+	AltContextWidget = new AltContext();
+  QHBoxLayout *MainLayout = new QHBoxLayout();
+  MainLayout->setMargin(0);
+	ScrollArea = new QScrollArea();
+  ScrollArea->setBackgroundRole(QPalette::Dark);
+ 	ScrollArea->setWidget(AltContextWidget);
+  MainLayout->addWidget(ScrollArea);
+  setLayout(MainLayout);
   setWindowTitle(tr("Alt"));
 }
 
+
 void Window::resizeEvent(QResizeEvent *e)
 {
-	altContextWidget->resizeSelf();
+	AltContextWidget->resizeSelf();
 }
 
 
@@ -27,7 +28,8 @@ void Window::keyPressEvent(QKeyEvent *e)
   if (e->key() == Qt::Key_Escape)
     close();
   else
-    altContextWidget->keyPressEvent(e);
+    AltContextWidget->keyPressEvent(e);
 }
+
 
 

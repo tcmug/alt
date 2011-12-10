@@ -4,6 +4,7 @@
 #include <QWidget>
 
 class AltContext;
+class QScrollArea;
 
 class Window : public QWidget 
 {
@@ -11,14 +12,16 @@ class Window : public QWidget
 
   public:
     Window();
-
+	
+		QScrollArea *ScrollArea;
+		
   protected:
     void keyPressEvent(QKeyEvent *event);
 		void resizeEvent(QResizeEvent *event);
 
   private:
 		
-		AltContext *altContextWidget;
+		AltContext *AltContextWidget;
 
 
 };
