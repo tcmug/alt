@@ -30,6 +30,7 @@ class AltContext : public QWidget
 
 		AltFormatterSyntax *Formatter;
 
+		int getGutterWidth();
 		void ensureCaretVisibility();
 
   public:

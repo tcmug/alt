@@ -124,7 +124,12 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 void AltContext::resizeSelf() 
 {
   // FIXME: replace 1000 with widest line in the file
-	resize(1000, FontMetrics->height() * (Lines.size()) + 5);
+	int height = (FontMetrics->height() * (Lines.size()) + 5);
+	if (height < parentWidget()->height()) 
+	{
+	  height = parentWidget()->height();
+	}
+	resize(1000, height);
 }
 
 
@@ -243,9 +248,10 @@ void AltContext::ensureCaretVisibility()
   int Line = -1;
   int Column = 0;
   int sy = y() - LineHeight;
+	int StartX = getGutterWidth();
 
   AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
-  QPoint Point(0, -LineHeight);
+  QPoint Point(StartX, -LineHeight);
   Point.setY(-LineHeight);
 
   while (bi->next()) {
@@ -253,7 +259,7 @@ void AltContext::ensureCaretVisibility()
     if (Line != bi->getRow())
     {
       Line = bi->getRow();
-      Point = QPoint(0, Point.y() + LineHeight);
+      Point = QPoint(StartX, Point.y() + LineHeight);
       sy += LineHeight;
     }
 
@@ -288,11 +294,17 @@ void AltContext::ensureCaretVisibility()
 void AltContext::mousePressEvent(QMouseEvent *event)
 {
 	int Line = event->y() / FontMetrics->height();
+	
+	if (Line >= Lines.size())
+  	return;
+	
 	CaretPosition.setY(Line);
 	
 	AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
 	bi->setRow(Line);
-	int x = 0, w, c = 0;
+	
+	int x = getGutterWidth(), w, c = 0;
+	
 	while (bi->next()) 
 	{
 		if (Line != bi->getRow())
@@ -315,7 +327,6 @@ void AltContext::mousePressEvent(QMouseEvent *event)
 		}
 		c += temp.length();
 		x += w;
-		//printf("%s\n", bi->getPart().toStdString().c_str());
 	}
 	CaretPosition.setX(Lines[CaretPosition.y()].getString().length());
 	repaint();
@@ -334,6 +345,15 @@ QSize AltContext::sizeHint() const
 }
 
 
+int AltContext::getGutterWidth()
+{
+  return 10;
+}
+
+
+/**
+ * Implementation of paintEvent()
+ */
 void AltContext::paintEvent(QPaintEvent *)
 {
 	QPainter painter(this);
@@ -349,9 +369,9 @@ void AltContext::paintEvent(QPaintEvent *)
 	int Line = -1;
 	int Column = 0;
 	int sy = y() - LineHeight;
-	
+	int StartX = getGutterWidth();
 	AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
-	QPoint Point(0, -LineHeight);
+	QPoint Point(StartX, -LineHeight);
 	Point.setY(-LineHeight);
 
 	while (bi->next()) {
@@ -359,7 +379,7 @@ void AltContext::paintEvent(QPaintEvent *)
 		if (Line != bi->getRow())
 		{
 			Line = bi->getRow();
-		  Point = QPoint(0, Point.y() + LineHeight);
+		  Point = QPoint(StartX, Point.y() + LineHeight);
 			sy += LineHeight;
 		}
 		
@@ -389,13 +409,33 @@ void AltContext::paintEvent(QPaintEvent *)
 		  		LineHeight
 	  		);
 	  		painter.drawRect(temp);
+
+				QString xstr, ystr;
+				xstr.setNum(CaretPosition.x() + 1);
+				ystr.setNum(CaretPosition.y() + 1);
+				QString out = xstr + ":" + ystr;
+				int w = FontMetrics->width(out);
+				QPoint pt(parentWidget()->width() - (w +5 ), Point.y() + LineHeight);
+				painter.drawText(pt, out);
+
 		  	painter.setCompositionMode(old);
 		  }
 		}
     
 		Point += QPoint(FontMetrics->width(bi->getPart()), 0);
   }
+  
 
-
+  Point = QPoint(0, Point.y() + LineHeight + 5);
+  painter.setPen(Qt::black);
+  painter.setBrush(QBrush(Qt::black));
+  QRect temp = QRect(
+    Point.x(),
+		Point.y(),
+    width(),
+    1
+  );
+  painter.drawRect(temp);
+   
 }
 
