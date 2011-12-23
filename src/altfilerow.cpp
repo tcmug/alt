@@ -6,7 +6,7 @@ AltFileRow::AltFileRow(const QString &str)
 	String = str;
 }
 
-const QString &AltFileRow::getString()
+const QString &AltFileRow::getString() const
 {
 	return String;
 }

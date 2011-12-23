@@ -70,13 +70,6 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 			repaint();
 		break;
-		case Qt::Key_F1: {
-      QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
-                                                 "",
-                                                 tr("Files (*.*)"));
-			this->openFile(fileName);
-			}
-		break;
 		case Qt::Key_Backspace:
 		  // erase from file point - to file point
 			{
@@ -98,15 +91,51 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			CaretPosition = this->insert(CaretPosition, "\n");
 			repaint();
 		break;
-		case Qt::Key_F2:
+		case 79:
+		  { // O
+  		const Qt::KeyboardModifiers modifiers = e->modifiers();
+		  if (modifiers == Qt::ControlModifier) 
+		  {
+        FileName = QFileDialog::getOpenFileName(
+  		    this, 
+			  	tr("Open File"),
+          "",
+          tr("Files (*.*)")
+			  ); 
+				this->openFile(FileName);
+			}
+			else
 			{
-			CaretPosition = this->insert(CaretPosition, "This\nis\na multiline insert");
-			repaint();
+			  CaretPosition = this->insert(CaretPosition, e->text());
+			  repaint();
+			}	
+		  }
+		break;
+		case 83: 
+		  { // S
+  		const Qt::KeyboardModifiers modifiers = e->modifiers();
+		  if (modifiers == Qt::ControlModifier) 
+		  {
+			  if (FileName == "")
+				{
+          FileName = QFileDialog::getSaveFileName(
+				    this, 
+				  	tr("Save File"),
+            "",
+            tr("Files (*.*)")
+				  );
+				} 
+				this->saveFile(FileName);
+			}
+			else
+			{
+			  CaretPosition = this->insert(CaretPosition, e->text());
+			  repaint();
+			}	
 		  }
 		break;
 		default:
 			{
-			//printf("%i\n",e->key());
 			CaretPosition = this->insert(CaretPosition, e->text());
 			repaint();
 			}
@@ -118,6 +147,10 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 	}
 
 	this->ensureCaretVisibility();
+}
+
+
+void AltContext::keyReleaseEvent(QKeyEvent *e) {
 }
 
 
@@ -201,6 +234,28 @@ QPoint AltContext::erase(const QPoint &fromp, const QPoint &top)
 	return from;
 }
 
+
+/**
+ * saveFile saves the content to the given file
+ */
+void AltContext::saveFile(const QString &fileName) 
+{
+  QFile file(fileName);
+  if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+    return;
+  QTextStream out(&file);
+	QVector <AltFileRow>::const_iterator i;
+	for (i = Lines.begin(); i != Lines.end(); i++)
+	{
+	  out << i->getString() << "\n";
+  }
+	file.close();
+}
+
+
+/**
+ * openFile opens the given file to its context
+ */
 void AltContext::openFile(const QString &fileName) 
 {
   QFile file(fileName);

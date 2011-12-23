@@ -44,11 +44,13 @@ class AltContext : public QWidget
 
 		void openFile(const QString &file);
 		void saveFile(const QString &file);
+		
 		QPoint insert(const QPoint &point, const QString &str);	
 		QPoint erase(const QPoint &from, const QPoint &to);
 
 		void mousePressEvent(QMouseEvent * event);
 		void keyPressEvent(QKeyEvent *e);
+		void keyReleaseEvent(QKeyEvent *e);
 
 };
 
