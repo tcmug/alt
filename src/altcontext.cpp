@@ -283,6 +283,7 @@ AltContext::AltContext(QWidget *parent)
   setAutoFillBackground(true);
 
   Font = new QFont("Courier", 12, QFont::Normal);
+	Font->setStyleHint(QFont::TypeWriter);
 	FontMetrics = new QFontMetrics(*Font);
 	setFocusPolicy(Qt::StrongFocus);
 
@@ -362,22 +363,23 @@ void AltContext::mousePressEvent(QMouseEvent *event)
 	
 	while (bi->next()) 
 	{
+	  // check for end of line
 		if (Line != bi->getRow())
 		  break;
 
 		const QString &temp = bi->getPart();
 		w = FontMetrics->width(temp);
-		if (event->x() < x + w) 
-		{			
-			for (int i = 0; i < temp.length(); i++)
+		if (event->x() <= x + w) 
+		{	
+			for (int i = 0; i < temp.length()+1; i++)
 			{
-				if (event->x() < x) 
+			  int tx = x + FontMetrics->width(temp, i);
+				if (event->x() < tx) 
 				{
 					CaretPosition.setX(c + i - 1);
 					repaint();
 					return;
 				}
-				x += FontMetrics->width(temp[i]);
 			}
 		}
 		c += temp.length();
