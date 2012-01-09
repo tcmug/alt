@@ -24,7 +24,7 @@ void AltFileRow::setStack(const QStack <QString> &s)
 }
 
 
-const QStack <QString> &AltFileRow::getStack()
+const QStack <QString> &AltFileRow::getStack() const
 {
 	return Stack;
 }

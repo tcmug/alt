@@ -12,6 +12,60 @@
 #include "altformatterblockiterator.h"
 #include "window.h"
 
+
+/**
+ * Constructor
+ */ 
+AltContext::AltContext(QWidget *parent)
+     :  QWidget(parent)
+{
+  setBackgroundRole(QPalette::Base);
+  setAutoFillBackground(true);
+
+  Font = new QFont("Courier", 12, QFont::Normal);
+	Font->setStyleHint(QFont::TypeWriter);
+	FontMetrics = new QFontMetrics(*Font);
+	setFocusPolicy(Qt::StrongFocus);
+
+	Formatter = new AltFormatterSyntax();
+	Lines.push_back(AltFileRow(""));
+  
+	Selection[0] = Selection[1] = QPoint(0, 0);
+
+}
+
+
+/**
+ * Returns true if there is an active selection
+ */
+bool AltContext::hasSelection() {
+  return Selection[0] != Selection[1];
+}
+
+
+/**
+ * Display the filename in the editor
+ */
+void AltContext::showFileName() 
+{
+  this->ShowFileName = true;
+  repaint();
+}
+
+
+/**
+ * Hide the filename in the editor
+ */
+void AltContext::hideFileName() 
+{
+  this->ShowFileName = false;
+	repaint();
+}
+
+
+/**
+ * Event handler for keypresses
+ */
 void AltContext::keyPressEvent(QKeyEvent *e)
 { 
 	int OldLines = Lines.size();
@@ -29,6 +83,7 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 			repaint();
 		break;
+		
 		case Qt::Key_Down:
 			if (CaretPosition.y() < Lines.size() - 1) 
 			{
@@ -40,6 +95,7 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 			repaint();
 		break;
+		
 		case Qt::Key_Left:
 		  if (CaretPosition.x() == 0) 
 		  {
@@ -55,6 +111,7 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 			repaint();
 		break;
+		
 		case Qt::Key_Right:
 			if (CaretPosition.x() == Lines[CaretPosition.y()].getString().length())
 			{
@@ -70,9 +127,10 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 			repaint();
 		break;
+		
 		case Qt::Key_Backspace:
-		  // erase from file point - to file point
-			{
+		// erase from file point - to file point
+		{
 			QPoint From = CaretPosition + QPoint(-1, 0);
 			if (From.x() < 0) 
 			{
@@ -84,15 +142,17 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 			CaretPosition = this->erase(From, CaretPosition);
 			repaint();
-		  }
+		}
 		break;
+		
 		case Qt::Key_Enter:
 		case Qt::Key_Return:
 			CaretPosition = this->insert(CaretPosition, "\n");
 			repaint();
 		break;
+		
 		case 79:
-		  { // O
+		{ // O
   		const Qt::KeyboardModifiers modifiers = e->modifiers();
 		  if (modifiers == Qt::ControlModifier) 
 		  {
@@ -102,17 +162,18 @@ void AltContext::keyPressEvent(QKeyEvent *e)
           "",
           tr("Files (*.*)")
 			  ); 
-				this->openFile(FileName);
+				openFile(FileName);
 			}
 			else
 			{
 			  CaretPosition = this->insert(CaretPosition, e->text());
 			  repaint();
 			}	
-		  }
+		}
 		break;
+		
 		case 83: 
-		  { // S
+		{ // S
   		const Qt::KeyboardModifiers modifiers = e->modifiers();
 		  if (modifiers == Qt::ControlModifier) 
 		  {
@@ -132,10 +193,42 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			  CaretPosition = this->insert(CaretPosition, e->text());
 			  repaint();
 			}	
-		  }
+		}
 		break;
+
+		case 67: // c
+		{
+      const Qt::KeyboardModifiers modifiers = e->modifiers();
+	    if (modifiers == Qt::ControlModifier)
+		  {
+				copy();
+			}
+			else
+			{
+        CaretPosition = this->insert(CaretPosition, e->text());
+        repaint();	
+			}
+		}
+		break;
+
+		case 86: // v
+		{
+      const Qt::KeyboardModifiers modifiers = e->modifiers();
+	    if (modifiers == Qt::ControlModifier)
+		  {
+				paste();
+			}
+			else
+			{
+        CaretPosition = this->insert(CaretPosition, e->text());
+        repaint();	
+			}
+		}
+		break;
+
 		default:
 			{
+			//printf("%u\n", e->key());
 			CaretPosition = this->insert(CaretPosition, e->text());
 			repaint();
 			}
@@ -153,6 +246,25 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 void AltContext::keyReleaseEvent(QKeyEvent *e) {
 }
 
+
+void AltContext::copy() 
+{
+  QClipboard *clipboard = QApplication::clipboard();
+ 	QMimeData mimeData;
+	mimeData.setText(Lines[CaretPosition.y()].getString());
+  clipboard->setMimeData(&mimeData);
+}
+
+void AltContext::paste() 
+{
+  const QClipboard *clipboard = QApplication::clipboard();
+  const QMimeData *mimeData = clipboard->mimeData();
+  if (mimeData->hasText()) {
+		CaretPosition = this->insert(CaretPosition, mimeData->text());
+    repaint();
+       //setTextFormat(Qt::PlainText);
+  }
+}
 
 void AltContext::resizeSelf() 
 {
@@ -250,6 +362,8 @@ void AltContext::saveFile(const QString &fileName)
 	  out << i->getString() << "\n";
   }
 	file.close();
+	QTimer::singleShot(5000, this, SLOT(hideFileName()));
+	showFileName();
 }
 
 
@@ -271,24 +385,10 @@ void AltContext::openFile(const QString &fileName)
     line = line.replace("\t", "  ");
     Lines.push_back(AltFileRow(line));
   }
+	QTimer::singleShot(5000, this, SLOT(hideFileName()));
 	resizeSelf();
-	repaint();
+	showFileName();
 	CaretPosition = QPoint(0, 0);
-}
-
-AltContext::AltContext(QWidget *parent)
-     :  QWidget(parent)
-{
-  setBackgroundRole(QPalette::Base);
-  setAutoFillBackground(true);
-
-  Font = new QFont("Courier", 12, QFont::Normal);
-	Font->setStyleHint(QFont::TypeWriter);
-	FontMetrics = new QFontMetrics(*Font);
-	setFocusPolicy(Qt::StrongFocus);
-
-	Formatter = new AltFormatterSyntax();
-	Lines.push_back(AltFileRow(""));
 }
 
 
@@ -335,7 +435,6 @@ void AltContext::ensureCaretVisibility()
         );
          
 			  ((QScrollArea*)parentWidget()->parentWidget())->ensureVisible(temp.x(), temp.y());				
-				//printf("%i %i\n", temp.x(), temp.y());
 				repaint();
         return;
       }
@@ -343,18 +442,25 @@ void AltContext::ensureCaretVisibility()
 
     Point += QPoint(FontMetrics->width(bi->getPart()), 0);
   }
-
 }
 
 
-void AltContext::mousePressEvent(QMouseEvent *event)
+QPoint AltContext::pointToCaretPosition(const QPoint &pt) const
 {
-	int Line = event->y() / FontMetrics->height();
+	QPoint Result(-1, -1);
+	int Line = 0;
 	
-	if (Line >= Lines.size())
-  	return;
+	if (pt.y() > 0) 
+	{
+    Line = pt.y() / FontMetrics->height();
+  }
+
+	if (Line >= Lines.size()) 
+	{
+  	return Result;
+	}
 	
-	CaretPosition.setY(Line);
+	Result.setY(Line);
 	
 	AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
 	bi->setRow(Line);
@@ -369,26 +475,73 @@ void AltContext::mousePressEvent(QMouseEvent *event)
 
 		const QString &temp = bi->getPart();
 		w = FontMetrics->width(temp);
-		if (event->x() <= x + w) 
+		if (pt.x() <= x + w) 
 		{	
 			for (int i = 0; i < temp.length()+1; i++)
 			{
 			  int tx = x + FontMetrics->width(temp, i);
-				if (event->x() < tx) 
+				if (pt.x() < tx) 
 				{
-					CaretPosition.setX(c + i - 1);
-					repaint();
-					return;
+					Result.setX(c + i - 1);
+					return Result;
 				}
 			}
 		}
 		c += temp.length();
 		x += w;
 	}
-	CaretPosition.setX(Lines[CaretPosition.y()].getString().length());
-	repaint();
+
+	Result.setX(Lines[Result.y()].getString().length());
+	return Result;
 }
 
+
+void AltContext::mousePressEvent(QMouseEvent *event)
+{
+  if (event->button() == Qt::LeftButton) 
+  {
+    QPoint Result = pointToCaretPosition(event->pos());
+	  if (Result.x() != -1 && Result.y() != -1) 
+	  {
+	    CaretPosition = Result;
+			Selection[0] = Selection[1] = CaretPosition;
+	 	  Painting = true;
+	    repaint();
+	  }  
+  }
+}
+
+
+void AltContext::mouseReleaseEvent(QMouseEvent *event)
+{
+  if (event->button() == Qt::LeftButton) 
+	{
+    QPoint Result = pointToCaretPosition(event->pos());
+	  if (Result.x() != -1 && Result.y() != -1) 
+	  {
+	    CaretPosition = Result;
+			Selection[1] = CaretPosition;
+		  Painting = false;
+	    repaint();
+			printf("%u:%u -> %u:%u\n", Selection[0].x(), Selection[0].y(), Selection[1].x(), Selection[1].y());
+	  }  
+	}
+}
+
+
+void AltContext::mouseMoveEvent(QMouseEvent *event) 
+{
+  if (Painting) 
+	{
+    QPoint Result = pointToCaretPosition(event->pos());
+	  if (Result.x() != -1 && Result.y() != -1 &&
+		  CaretPosition != Result) 
+		{
+	    CaretPosition = Result;
+	    repaint();
+	  }  
+	}
+}
 
 
 QSize AltContext::minimumSizeHint() const
@@ -402,7 +555,7 @@ QSize AltContext::sizeHint() const
 }
 
 
-int AltContext::getGutterWidth()
+int AltContext::getGutterWidth() const
 {
   return 10;
 }
@@ -432,7 +585,7 @@ void AltContext::paintEvent(QPaintEvent *)
 	Point.setY(-LineHeight);
 
 	while (bi->next()) {
-	
+
 		if (Line != bi->getRow())
 		{
 			Line = bi->getRow();
@@ -477,12 +630,19 @@ void AltContext::paintEvent(QPaintEvent *)
 
 		  	painter.setCompositionMode(old);
 		  }
+		  if (bi->endOfLine()) 
+		  	// Store existing Stack
+		  	this->Lines[Line].setStack(bi->getLineStack());
 		}
     
+
+		if (bi->endOfLine()) 
+			// Store existing Stack
+		 	this->Lines[Line].setStack(bi->getLineStack());
+
 		Point += QPoint(FontMetrics->width(bi->getPart()), 0);
   }
   
-
   Point = QPoint(0, Point.y() + LineHeight + 5);
   painter.setPen(Qt::black);
   painter.setBrush(QBrush(Qt::black));
@@ -493,6 +653,19 @@ void AltContext::paintEvent(QPaintEvent *)
     1
   );
   painter.drawRect(temp);
-   
+ 
+  if (ShowFileName) 
+	{
+  	painter.setBackground(QBrush(Qt::white));
+    painter.setPen(Qt::lightGray);
+  	int w = FontMetrics->width(FileName);
+    QPoint pt(parentWidget()->width() - (w + 5 ), LineHeight - y());
+    painter.drawText(pt, FileName);
+		pt += QPoint(-1,-1);
+		painter.setBackgroundMode(Qt::TransparentMode);
+  	painter.setPen(Qt::black);
+    painter.drawText(pt, FileName);
+	}
+  
 }
 

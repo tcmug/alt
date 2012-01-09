@@ -22,16 +22,32 @@ class AltContext : public QWidget
 		QFont *Font;
 		QFontMetrics *FontMetrics;
 		QString FileName;
+		bool ShowFileName;
 
     void paintEvent(QPaintEvent *event);
 
 		QVector <AltFileRow> Lines;
 		QPoint CaretPosition;
+		QPoint Selection[2];
+
+		bool Painting;
 
 		AltFormatterSyntax *Formatter;
 
-		int getGutterWidth();
+		int getGutterWidth() const;
 		void ensureCaretVisibility();
+
+		bool hasSelection();
+
+		void copy();
+		void paste();
+
+  	QPoint pointToCaretPosition(const QPoint &pt) const;
+		
+  public slots:
+		
+		void showFileName();
+		void hideFileName();
 
   public:
 
@@ -48,7 +64,11 @@ class AltContext : public QWidget
 		QPoint insert(const QPoint &point, const QString &str);	
 		QPoint erase(const QPoint &from, const QPoint &to);
 
+
 		void mousePressEvent(QMouseEvent * event);
+		void mouseReleaseEvent(QMouseEvent * event);
+		void mouseMoveEvent(QMouseEvent * event);
+
 		void keyPressEvent(QKeyEvent *e);
 		void keyReleaseEvent(QKeyEvent *e);
 

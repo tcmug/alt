@@ -18,7 +18,7 @@ class AltFileRow
 		const QString &getString() const;
 		void setString(const QString &str);
 		void setStack(const QStack <QString> &stack);
-		const QStack <QString> &getStack();
+		const QStack <QString> &getStack() const;
 		
 		void insert(int pos, const QString &str);
 		void erase(int from, int to);

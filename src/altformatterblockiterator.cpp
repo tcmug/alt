@@ -5,7 +5,7 @@
 #include "altformatterblockiterator.h"
 
 
-AltFormatterBlockIterator::AltFormatterBlockIterator(AltContext *c)
+AltFormatterBlockIterator::AltFormatterBlockIterator(const AltContext *c)
 {
 	Context = c;
 	AtCharacter = 0;
@@ -37,12 +37,12 @@ bool AltFormatterBlockIterator::next()
 	// next line
 	if (Line == -1 || AtCharacter >= LineString.length()) 
 	{ 
-		if (Line >= 0)
+/*		if (Line >= 0)
 		{
 			// Store existing Stack
 			Context->Lines[Line].setStack(LineStack);
 		}
-
+*/
     Line++;
 
 	  if (Line == Context->Lines.size()) 
@@ -72,25 +72,33 @@ bool AltFormatterBlockIterator::next()
 }
 
 
-int AltFormatterBlockIterator::getRow()
+int AltFormatterBlockIterator::getRow() const
 {
 	return Line;
 }
 
-int AltFormatterBlockIterator::getColumn()
+int AltFormatterBlockIterator::getColumn() const
 {
 	return Column;
 }
 
-const QString &AltFormatterBlockIterator::getPart()
+const QString &AltFormatterBlockIterator::getPart() const
 {
 	return Part;
 }
 
-const AltFormatterBlock *AltFormatterBlockIterator::getFormatterBlock()
+const AltFormatterBlock *AltFormatterBlockIterator::getFormatterBlock() const
 {
 	return Block;
 }
 
+bool AltFormatterBlockIterator::endOfLine() const 
+{
+	return (Line >= 0 || AtCharacter >= LineString.length());
+}
 
+const QStack <QString> &AltFormatterBlockIterator::getLineStack() const 
+{
+	return LineStack;
+}
 

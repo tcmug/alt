@@ -1,9 +1,10 @@
 
+
 #include <QApplication>
 #include <QDesktopWidget>
-//#include <QMessageBox>
-#include "window.h"
+#include <QtPlugin>
 
+#include "window.h"
 #include "altformattersyntax.h"
 
 int main(int argc, char *argv[])
