@@ -72,6 +72,8 @@ class AltContext : public QWidget
 		void keyPressEvent(QKeyEvent *e);
 		void keyReleaseEvent(QKeyEvent *e);
 
+		int getLineHeight() const;
+
 };
 
 #endif

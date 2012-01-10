@@ -32,6 +32,7 @@ AltContext::AltContext(QWidget *parent)
   
 	Selection[0] = Selection[1] = QPoint(0, 0);
 
+  setCursor(Qt::IBeamCursor);
 }
 
 
@@ -269,7 +270,7 @@ void AltContext::paste()
 void AltContext::resizeSelf() 
 {
   // FIXME: replace 1000 with widest line in the file
-	int height = (FontMetrics->height() * (Lines.size()) + 5);
+	int height = (getLineHeight() * (Lines.size()) + 5);
 	if (height < parentWidget()->height()) 
 	{
 	  height = parentWidget()->height();
@@ -367,6 +368,12 @@ void AltContext::saveFile(const QString &fileName)
 }
 
 
+
+int AltContext::getLineHeight() const
+{
+	return FontMetrics->height() + 1;
+}
+
 /**
  * openFile opens the given file to its context
  */
@@ -400,7 +407,7 @@ void AltContext::ensureCaretVisibility()
   QString output, str;
 
   //int wh = parentWidget()->height();
-  int LineHeight = FontMetrics->height();
+  int LineHeight = getLineHeight();
   int Line = -1;
   int Column = 0;
   int sy = y() - LineHeight;
@@ -452,7 +459,7 @@ QPoint AltContext::pointToCaretPosition(const QPoint &pt) const
 	
 	if (pt.y() > 0) 
 	{
-    Line = pt.y() / FontMetrics->height();
+    Line = pt.y() / getLineHeight();
   }
 
 	if (Line >= Lines.size()) 
@@ -523,7 +530,7 @@ void AltContext::mouseReleaseEvent(QMouseEvent *event)
 			Selection[1] = CaretPosition;
 		  Painting = false;
 	    repaint();
-			printf("%u:%u -> %u:%u\n", Selection[0].x(), Selection[0].y(), Selection[1].x(), Selection[1].y());
+			//printf("%u:%u -> %u:%u\n", Selection[0].x(), Selection[0].y(), Selection[1].x(), Selection[1].y());
 	  }  
 	}
 }
@@ -576,7 +583,7 @@ void AltContext::paintEvent(QPaintEvent *)
 	QString output, str;
 
 	//int wh = parentWidget()->height();
-	int LineHeight = FontMetrics->height();
+	int LineHeight = getLineHeight();
 	int Line = -1;
 	int Column = 0;
 	int sy = y() - LineHeight;
@@ -632,8 +639,8 @@ void AltContext::paintEvent(QPaintEvent *)
 
 				if (Selection[se].y() == Line)
 				{
-          if ((Selection[ss].x() >= Column) &&
-            (Selection[ss].x() <= Column + e))
+          if ((Selection[se].x() >= Column) &&
+            (Selection[se].x() <= Column + e))
             e = Selection[se].x() - Column;
 					else if (Selection[se].x() < Column)
 						e = s;
@@ -700,7 +707,16 @@ void AltContext::paintEvent(QPaintEvent *)
 				QString out = xstr + ":" + ystr;
 				int w = FontMetrics->width(out);
 				QPoint pt(parentWidget()->width() - (w +5 ), Point.y() + LineHeight);
-				painter.drawText(pt, out);
+
+  	    painter.setBackground(QBrush(Qt::white));
+        painter.setPen(Qt::lightGray);
+        painter.drawText(pt, out);
+	   	  pt += QPoint(-1,-1);
+        painter.setBackgroundMode(Qt::TransparentMode);
+     	  painter.setPen(Qt::black);
+        painter.drawText(pt, out);
+
+				//painter.drawText(pt, out);
 
 		  	painter.setCompositionMode(old);
 		  }
