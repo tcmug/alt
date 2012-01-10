@@ -538,6 +538,7 @@ void AltContext::mouseMoveEvent(QMouseEvent *event)
 		  CaretPosition != Result) 
 		{
 	    CaretPosition = Result;
+			Selection[1] = CaretPosition;
 	    repaint();
 	  }  
 	}
@@ -580,9 +581,24 @@ void AltContext::paintEvent(QPaintEvent *)
 	int Column = 0;
 	int sy = y() - LineHeight;
 	int StartX = getGutterWidth();
+
 	AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
 	QPoint Point(StartX, -LineHeight);
 	Point.setY(-LineHeight);
+	
+	bool HasSelection = hasSelection();
+	int ss = 0, se = 1;
+
+	if (HasSelection && 
+		(Selection[1].y() < Selection[0].y()) ||
+		((Selection[0].y() == Selection[1].y()) && (Selection[1].x() < Selection[0].x())) 
+		)
+	{
+		{
+			se = 0;
+			ss = 1;
+		}
+	}
 
 	while (bi->next()) {
 
@@ -598,18 +614,76 @@ void AltContext::paintEvent(QPaintEvent *)
   	
 		if (sy > -LineHeight) {
 
-  		painter.setPen(b->getTextColor());
     	painter.setBackgroundMode(Qt::OpaqueMode);
-    	painter.setBackground(QBrush(b->getBackgroundColor()));
-  	  painter.drawText(Point + QPoint(0, LineHeight), bi->getPart());
+
+			if (HasSelection && Line >= Selection[ss].y() && Line <= Selection[se].y()) 
+			{
+			  QString Part = bi->getPart();
+			  int s = 0, e = Part.length();
+
+				if (Selection[ss].y() == Line) 
+				{
+				  if ((Selection[ss].x() >= Column) &&
+						(Selection[ss].x() <= Column + e)) 
+						s = Selection[ss].x() - Column;
+					else if (Selection[ss].x() > Column + e)
+						s = e;
+				}
+
+				if (Selection[se].y() == Line)
+				{
+          if ((Selection[ss].x() >= Column) &&
+            (Selection[ss].x() <= Column + e))
+            e = Selection[se].x() - Column;
+					else if (Selection[se].x() < Column)
+						e = s;
+				}
+
+				QPoint TempPoint = Point + QPoint(0, LineHeight);
+
+				if (s < e) {
+					if (s > 0)
+					{
+					  // print preceeding non-selection
+				    painter.setPen(b->getTextColor());
+            painter.setBackground(QBrush(b->getBackgroundColor()));
+            painter.drawText(TempPoint, Part.left(s));
+					  TempPoint += QPoint(FontMetrics->width(Part.left(s)), 0);
+					}
+					
+					// print selection
+				  painter.setPen(b->getBackgroundColor());
+          painter.setBackground(QBrush(b->getTextColor()));
+          painter.drawText(TempPoint, Part.mid(s, e - s));
+					TempPoint += QPoint(FontMetrics->width(Part.mid(s, e - s)), 0);
+
+					if (e < Part.length())
+					{
+					  // print proceeding non-selection
+				    painter.setPen(b->getTextColor());
+            painter.setBackground(QBrush(b->getBackgroundColor()));
+            painter.drawText(TempPoint, Part.right(Part.length() - e));
+					}
+				} else {
+				  painter.setPen(b->getTextColor());
+          painter.setBackground(QBrush(b->getBackgroundColor()));
+          painter.drawText(TempPoint, Part);
+				}
+
+			}
+			else
+	  	{
+			  // Not within selection
+    	  painter.setPen(b->getTextColor());
+        painter.setBackground(QBrush(b->getBackgroundColor()));
+        painter.drawText(Point + QPoint(0, LineHeight), bi->getPart());
+			}
 
       if ((Line == CaretPosition.y()) &&
           (CaretPosition.x() >= Column) &&
           (CaretPosition.x() <= Column + bi->getPart().length()))
 	  	{
-
       	QPainter::CompositionMode old = painter.compositionMode();
-	  		//	painter.setCompositionMode(QPainter::CompositionMode_Difference);
     		painter.setPen(Qt::black);
 	  		painter.setBrush(QBrush(Qt::black));
       	QRect temp = QRect(
