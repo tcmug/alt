@@ -229,7 +229,6 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 
 		default:
 			{
-			//printf("%u\n", e->key());
 			CaretPosition = this->insert(CaretPosition, e->text());
 			repaint();
 			}
@@ -252,9 +251,45 @@ void AltContext::copy()
 {
   QClipboard *clipboard = QApplication::clipboard();
  	QMimeData mimeData;
-	mimeData.setText(Lines[CaretPosition.y()].getString());
+	QString Copy;
+
+	if (hasSelection()) 
+	{
+	  int ss = 0, se = 1;
+	  if ((Selection[1].y() < Selection[0].y()) ||
+	  	((Selection[0].y() == Selection[1].y()) && (Selection[1].x() < Selection[0].x())) 
+		  )
+  	{
+	  	se = 0;
+		  ss = 1;
+  	}
+		if (Selection[ss].y() == Selection[se].y())
+		{
+			Copy = Lines[Selection[ss].y()].getString().mid(
+				Selection[ss].x(),
+				Selection[se].x() - Selection[ss].x()
+			);
+		}
+		else
+		{
+			Copy = Lines[Selection[ss].y()].getString().right(
+				Lines[Selection[ss].y()].getString().length() - Selection[ss].x()
+			) + "\n";
+		  for (int Line = Selection[ss].y() + 1; Line < Selection[se].y(); Line++)
+		  {
+				Copy += Lines[Line].getString() + "\n";
+		  }
+			Copy += Lines[Selection[se].y()].getString().left(Selection[se].x());
+		}
+	}
+	else
+	{
+	  Copy = Lines[CaretPosition.y()].getString();
+	}
+  mimeData.setText(Copy);
   clipboard->setMimeData(&mimeData);
 }
+
 
 void AltContext::paste() 
 {
@@ -263,9 +298,9 @@ void AltContext::paste()
   if (mimeData->hasText()) {
 		CaretPosition = this->insert(CaretPosition, mimeData->text());
     repaint();
-       //setTextFormat(Qt::PlainText);
   }
 }
+
 
 void AltContext::resizeSelf() 
 {
@@ -284,34 +319,34 @@ QPoint AltContext::insert(const QPoint &p, const QString &str)
 {
 	QString temp;
 	QPoint point = p;
-	QStringList List = str.split("\n");
-	int i;
-	if (List.size() > 1) 
+	if (str.indexOf("\n") >= 0) 
 	{
-		Lines.insert(point.y() + 1, List.size() - 1, AltFileRow());
+  	int i = 0;
+	  QStringList List = str.split("\n");
+	  Lines.insert(point.y() + 1, List.size() - 1, AltFileRow());
+		printf("Lines:%u (Lines size:%u)\n", List.size(), Lines.size());
 		temp = Lines[point.y()].getString();
 		if (temp.length() > point.x()) 
 		{
-			Lines[point.y() + List.size() - 1].setString(temp.right(temp.length() - point.x()));
 			Lines[point.y()].setString(temp.left(point.x()));
-		}
-	  for (i = 0; i < List.size()-1; ++i) 
+		}	
+	  for (i = 0; i < List.size() - 1; i++) 
     {
-			temp = List[i];
-		  Lines[point.y()].insert(point.x(), temp);
+		  Lines[point.y()].insert(point.x(), List[i]);
+		  printf("%u:%s<<\n", i, List[i].toStdString().c_str());
 		  point.setX(0);
 		  point.setY(point.y() + 1);
 	  }
-		temp = List[i];
+	  temp = List[i];
+		printf("%u:%s<<\n", i, List[i].toStdString().c_str());
 	} 
 	else 
 	{
 		temp = str;
 	}	
-
+	
 	Lines[point.y()].insert(point.x(), temp);
 	point.setX(point.x() + temp.length());
-
 	return point;
 }
 
@@ -401,6 +436,7 @@ void AltContext::openFile(const QString &fileName)
 
 void AltContext::ensureCaretVisibility()
 {
+
   const AltFormatterBlock *b;
 
   QPoint point;
@@ -413,42 +449,55 @@ void AltContext::ensureCaretVisibility()
   int sy = y() - LineHeight;
 	int StartX = getGutterWidth();
 
-  AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
+  AltFormatterBlockIterator bi(this);
   QPoint Point(StartX, -LineHeight);
   Point.setY(-LineHeight);
 
-  while (bi->next()) {
+	printf("ensure\n");
+  
+	while (bi.next()) {
 
-    if (Line != bi->getRow())
+    if (Line != bi.getRow())
     {
-      Line = bi->getRow();
+      Line = bi.getRow();
       Point = QPoint(StartX, Point.y() + LineHeight);
       sy += LineHeight;
     }
 
-    b = bi->getFormatterBlock();
-    Column = bi->getColumn();
+    b = bi.getFormatterBlock();
+    Column = bi.getColumn();
+
+		printf("%u:%u\n", Line, Column);
 
     if (sy > -LineHeight) {
 
       if ((Line == CaretPosition.y()) &&
           (CaretPosition.x() >= Column) &&
-          (CaretPosition.x() <= Column + bi->getPart().length()))
+          (CaretPosition.x() <= Column + bi.getPart().length()))
       {
 
         QPoint temp(
-					Point.x() + FontMetrics->width(bi->getPart(), CaretPosition.x() - Column),
+					Point.x() + FontMetrics->width(bi.getPart(), CaretPosition.x() - Column),
           Point.y()
         );
          
 			  ((QScrollArea*)parentWidget()->parentWidget())->ensureVisible(temp.x(), temp.y());				
 				repaint();
+	printf("ensured 1\n");
         return;
       }
-    }
 
-    Point += QPoint(FontMetrics->width(bi->getPart()), 0);
+			if (bi.endOfLine()) 
+		  	this->Lines[Line].setStack(bi.getLineStack());
+		}
+    
+		if (bi.endOfLine()) 
+   		this->Lines[Line].setStack(bi.getLineStack());
+    
+		Point += QPoint(FontMetrics->width(bi.getPart()), 0);
   }
+
+	printf("ensured 2\n");
 }
 
 
@@ -469,18 +518,18 @@ QPoint AltContext::pointToCaretPosition(const QPoint &pt) const
 	
 	Result.setY(Line);
 	
-	AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
-	bi->setRow(Line);
-	
+	AltFormatterBlockIterator bi(this);
+	bi.setRow(Line);
+ 	
 	int x = getGutterWidth(), w, c = 0;
 	
-	while (bi->next()) 
+	while (bi.next()) 
 	{
 	  // check for end of line
-		if (Line != bi->getRow())
+		if (Line != bi.getRow())
 		  break;
 
-		const QString &temp = bi->getPart();
+		const QString &temp = bi.getPart();
 		w = FontMetrics->width(temp);
 		if (pt.x() <= x + w) 
 		{	
@@ -577,6 +626,7 @@ void AltContext::paintEvent(QPaintEvent *)
 	QPainter painter(this);
 	painter.setFont(*Font);
 	
+	printf("render\n");
 	const AltFormatterBlock *b;
 
 	QPoint point;
@@ -589,7 +639,7 @@ void AltContext::paintEvent(QPaintEvent *)
 	int sy = y() - LineHeight;
 	int StartX = getGutterWidth();
 
-	AltFormatterBlockIterator *bi = new AltFormatterBlockIterator(this);
+	AltFormatterBlockIterator bi(this);
 	QPoint Point(StartX, -LineHeight);
 	Point.setY(-LineHeight);
 	
@@ -601,31 +651,29 @@ void AltContext::paintEvent(QPaintEvent *)
 		((Selection[0].y() == Selection[1].y()) && (Selection[1].x() < Selection[0].x())) 
 		)
 	{
-		{
-			se = 0;
-			ss = 1;
-		}
+		se = 0;
+		ss = 1;
 	}
-
-	while (bi->next()) {
-
-		if (Line != bi->getRow())
+	
+	while (bi.next()) {
+		
+		if (Line != bi.getRow())
 		{
-			Line = bi->getRow();
+			Line = bi.getRow();
 		  Point = QPoint(StartX, Point.y() + LineHeight);
 			sy += LineHeight;
 		}
-		
-		b = bi->getFormatterBlock();
-		Column = bi->getColumn();
+		b = bi.getFormatterBlock();
+		Column = bi.getColumn();
   	
+	  printf("%u:%u\n", Column, Line);	
 		if (sy > -LineHeight) {
 
     	painter.setBackgroundMode(Qt::OpaqueMode);
 
-			if (HasSelection && Line >= Selection[ss].y() && Line <= Selection[se].y()) 
+			if (HasSelection && Line >= Selection[ss].y() && Line <= Selection[se].y())
 			{
-			  QString Part = bi->getPart();
+			  QString Part = bi.getPart();
 			  int s = 0, e = Part.length();
 
 				if (Selection[ss].y() == Line) 
@@ -683,18 +731,18 @@ void AltContext::paintEvent(QPaintEvent *)
 			  // Not within selection
     	  painter.setPen(b->getTextColor());
         painter.setBackground(QBrush(b->getBackgroundColor()));
-        painter.drawText(Point + QPoint(0, LineHeight), bi->getPart());
+        painter.drawText(Point + QPoint(0, LineHeight), bi.getPart());
 			}
 
       if ((Line == CaretPosition.y()) &&
           (CaretPosition.x() >= Column) &&
-          (CaretPosition.x() <= Column + bi->getPart().length()))
+          (CaretPosition.x() <= Column + bi.getPart().length()))
 	  	{
       	QPainter::CompositionMode old = painter.compositionMode();
     		painter.setPen(Qt::black);
 	  		painter.setBrush(QBrush(Qt::black));
       	QRect temp = QRect(
-	  			Point.x() + FontMetrics->width(bi->getPart(), CaretPosition.x() - Column), 
+	  			Point.x() + FontMetrics->width(bi.getPart(), CaretPosition.x() - Column), 
 		  		Point.y(),
 		  		2,
 		  		LineHeight
@@ -720,19 +768,17 @@ void AltContext::paintEvent(QPaintEvent *)
 
 		  	painter.setCompositionMode(old);
 		  }
-		  if (bi->endOfLine()) 
-		  	// Store existing Stack
-		  	this->Lines[Line].setStack(bi->getLineStack());
+		  
+			if (bi.endOfLine()) 
+		  	this->Lines[Line].setStack(bi.getLineStack());
 		}
     
 
-		if (bi->endOfLine()) 
-			// Store existing Stack
-		 	this->Lines[Line].setStack(bi->getLineStack());
+		if (bi.endOfLine()) 
+   		this->Lines[Line].setStack(bi.getLineStack());
 
-		Point += QPoint(FontMetrics->width(bi->getPart()), 0);
+		Point += QPoint(FontMetrics->width(bi.getPart()), 0);
   }
-  
   Point = QPoint(0, Point.y() + LineHeight + 5);
   painter.setPen(Qt::black);
   painter.setBrush(QBrush(Qt::black));
@@ -742,7 +788,8 @@ void AltContext::paintEvent(QPaintEvent *)
     width(),
     1
   );
-  painter.drawRect(temp);
+  
+	painter.drawRect(temp);
  
   if (ShowFileName) 
 	{
@@ -757,5 +804,6 @@ void AltContext::paintEvent(QPaintEvent *)
     painter.drawText(pt, FileName);
 	}
   
+	printf("done\n");
 }
 

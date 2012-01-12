@@ -13,7 +13,8 @@ class AltFileRow
 		
 	public:
 
-		AltFileRow(const QString &str = "");
+		AltFileRow();
+		AltFileRow(const QString &str);
 	
 		const QString &getString() const;
 		void setString(const QString &str);

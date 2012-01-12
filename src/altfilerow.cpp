@@ -1,6 +1,11 @@
 
 #include "altfilerow.h"
 
+
+AltFileRow::AltFileRow()
+{
+}
+
 AltFileRow::AltFileRow(const QString &str)
 {
 	String = str;

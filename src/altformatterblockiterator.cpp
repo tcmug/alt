@@ -37,12 +37,6 @@ bool AltFormatterBlockIterator::next()
 	// next line
 	if (Line == -1 || AtCharacter >= LineString.length()) 
 	{ 
-/*		if (Line >= 0)
-		{
-			// Store existing Stack
-			Context->Lines[Line].setStack(LineStack);
-		}
-*/
     Line++;
 
 	  if (Line == Context->Lines.size()) 
@@ -59,7 +53,6 @@ bool AltFormatterBlockIterator::next()
 		{
 		  LineStack = Context->Lines[Line-1].getStack();
 		}
-
 		// Grab line data		
 		AtCharacter = 0;
 		LineString = Context->Lines[Line].getString();
