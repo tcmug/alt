@@ -29,7 +29,9 @@ AltContext::AltContext(QWidget *parent)
 
 	Formatter = new AltFormatterSyntax();
 	Lines.push_back(AltFileRow(""));
-  
+
+	LastUpdatedRow = 0;
+	HistoryTop = 0;
 	Selection[0] = Selection[1] = QPoint(0, 0);
 
   setCursor(Qt::IBeamCursor);
@@ -132,16 +134,23 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 		case Qt::Key_Backspace:
 		// erase from file point - to file point
 		{
-			QPoint From = CaretPosition + QPoint(-1, 0);
-			if (From.x() < 0) 
+			if (hasSelection()) 
 			{
-				if (From.y() == 0)
-				  // do nothing as were on the 1st line
-  				break;
-				From.setY(From.y() - 1);
-				From.setX(Lines[From.y()].getString().length());
+				eraseSelection();
 			}
-			CaretPosition = this->erase(From, CaretPosition);
+			else
+			{
+  			QPoint From = CaretPosition + QPoint(-1, 0);  
+  			if (From.x() < 0) 
+  			{
+  				if (From.y() == 0)
+  				  // do nothing as were on the 1st line
+    				break;
+ 	  			From.setY(From.y() - 1);
+  				From.setX(Lines[From.y()].getString().length());
+		  	}
+		  	CaretPosition = this->erase(From, CaretPosition);
+			}
 			repaint();
 		}
 		break;
@@ -152,6 +161,37 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			repaint();
 		break;
 		
+		case Qt::Key_Z:
+		{ // O
+  		const Qt::KeyboardModifiers modifiers = e->modifiers();
+		  if (modifiers == Qt::ControlModifier) 
+			{
+				if (HistoryTop > 0) 
+				{
+				  HistoryTop--;
+				  switch (History[HistoryTop].Type)
+				  {
+				  	case AltHistoryEvent::Insert:
+				  		erase(History[HistoryTop].Positions[0], History[HistoryTop].Positions[1], false);	
+				  	break;
+
+				  	case AltHistoryEvent::Erase:
+				  		insert(History[HistoryTop].Positions[0], History[HistoryTop].String, false);	
+				  	break;
+				  }
+
+					repaint();
+					printf("%u %u\n", HistoryTop, History.size());
+				}
+			}
+			else
+			{
+			  CaretPosition = this->insert(CaretPosition, e->text());
+			  repaint();
+			}
+		}
+		break;
+
 		case 79:
 		{ // O
   		const Qt::KeyboardModifiers modifiers = e->modifiers();
@@ -191,6 +231,8 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 			else
 			{
+				if (hasSelection())
+					eraseSelection();
 			  CaretPosition = this->insert(CaretPosition, e->text());
 			  repaint();
 			}	
@@ -206,6 +248,8 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 			else
 			{
+				if (hasSelection())
+					eraseSelection();
         CaretPosition = this->insert(CaretPosition, e->text());
         repaint();	
 			}
@@ -221,6 +265,8 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			}
 			else
 			{
+				if (hasSelection())
+					eraseSelection();
         CaretPosition = this->insert(CaretPosition, e->text());
         repaint();	
 			}
@@ -229,6 +275,12 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 
 		default:
 			{
+      const Qt::KeyboardModifiers modifiers = e->modifiers();
+			if (modifiers != Qt::ControlModifier)
+			{
+			  if (hasSelection())
+				  eraseSelection();
+			}
 			CaretPosition = this->insert(CaretPosition, e->text());
 			repaint();
 			}
@@ -243,10 +295,15 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 }
 
 
-void AltContext::keyReleaseEvent(QKeyEvent *e) {
+
+void AltContext::keyReleaseEvent(QKeyEvent *e) 
+{
 }
 
 
+/**
+ * Copy selected text
+ */
 void AltContext::copy() 
 {
   QClipboard *clipboard = QApplication::clipboard();
@@ -291,17 +348,44 @@ void AltContext::copy()
 }
 
 
+/**
+ * Paste text from clipboard
+ */
 void AltContext::paste() 
 {
   const QClipboard *clipboard = QApplication::clipboard();
   const QMimeData *mimeData = clipboard->mimeData();
   if (mimeData->hasText()) {
-		CaretPosition = this->insert(CaretPosition, mimeData->text());
+    if (hasSelection()) 
+		{
+			eraseSelection();
+		}
+		CaretPosition = insert(CaretPosition, mimeData->text());
     repaint();
   }
 }
 
+/**
+ * Erase selection
+ */
+void AltContext::eraseSelection() 
+{
+	int ss = 0, se = 1;
+	if (
+		(Selection[1].y() < Selection[0].y()) ||
+		((Selection[0].y() == Selection[1].y()) && (Selection[1].x() < Selection[0].x())) 
+		)
+	{
+		se = 0;
+		ss = 1;
+	}
+	CaretPosition = erase(Selection[ss], Selection[se]);
+	Selection[0] = Selection[1];
+}
 
+/**
+ * Resize the widget to fit the window and be the right height
+ */
 void AltContext::resizeSelf() 
 {
   // FIXME: replace 1000 with widest line in the file
@@ -314,9 +398,16 @@ void AltContext::resizeSelf()
 }
 
 
-
-QPoint AltContext::insert(const QPoint &p, const QString &str)
+/**
+ * Insert text to Position
+ */
+QPoint AltContext::insert(const QPoint &p, const QString &str, bool record)
 {
+	AltHistoryEvent event;
+	event.Type = AltHistoryEvent::Insert;
+	event.Positions[0] = p;
+	event.String = str;
+
 	QString temp;
 	QPoint point = p;
 	if (str.indexOf("\n") >= 0) 
@@ -324,21 +415,20 @@ QPoint AltContext::insert(const QPoint &p, const QString &str)
   	int i = 0;
 	  QStringList List = str.split("\n");
 	  Lines.insert(point.y() + 1, List.size() - 1, AltFileRow());
-		printf("Lines:%u (Lines size:%u)\n", List.size(), Lines.size());
 		temp = Lines[point.y()].getString();
 		if (temp.length() > point.x()) 
 		{
 			Lines[point.y()].setString(temp.left(point.x()));
-		}	
+		}
+		temp = temp.right(temp.length() - point.x());
 	  for (i = 0; i < List.size() - 1; i++) 
     {
 		  Lines[point.y()].insert(point.x(), List[i]);
-		  printf("%u:%s<<\n", i, List[i].toStdString().c_str());
 		  point.setX(0);
 		  point.setY(point.y() + 1);
 	  }
+		Lines[point.y()] = temp;
 	  temp = List[i];
-		printf("%u:%s<<\n", i, List[i].toStdString().c_str());
 	} 
 	else 
 	{
@@ -347,19 +437,40 @@ QPoint AltContext::insert(const QPoint &p, const QString &str)
 	
 	Lines[point.y()].insert(point.x(), temp);
 	point.setX(point.x() + temp.length());
+
+	event.Positions[1] = point;
+	if (record) 
+	{
+		if (HistoryTop < History.size())
+		{
+			History.remove(HistoryTop, History.size() - HistoryTop);
+		}
+	  History.push_back(event);
+	  HistoryTop++;
+	}
 	return point;
 }
 
 
-QPoint AltContext::erase(const QPoint &fromp, const QPoint &top)
+
+/*
+ * Erase from position to a position
+ */
+QPoint AltContext::erase(const QPoint &fromp, const QPoint &top, bool record)
 {
+
+	AltHistoryEvent event;
+  event.Type = AltHistoryEvent::Erase;
+  event.Positions[0] = fromp;
+  event.Positions[1] = top;
+
 	QPoint from = fromp;
 	QPoint to = top;
 
 	if (to.y() - from.y() > 1) 
 	{
 		// erase lines between
-		Lines.remove(to.y() + 1, to.y() - from.y() - 1);
+		Lines.remove(from.y() + 1, (to.y() - from.y()) - 1);
 		to.setY(from.y() + 1);
 	}
 
@@ -379,8 +490,19 @@ QPoint AltContext::erase(const QPoint &fromp, const QPoint &top)
 		Lines[from.y()].erase(from.x(), to.x());
 	}
 
+	if (record) 
+	{
+		if (HistoryTop < History.size())
+		{
+			History.remove(HistoryTop, History.size() - HistoryTop);
+		}
+	  History.push_back(event);
+	  HistoryTop++;
+  }
 	return from;
 }
+
+
 
 
 /**
@@ -403,11 +525,14 @@ void AltContext::saveFile(const QString &fileName)
 }
 
 
-
+/**
+ * Get the height of a single line
+ */
 int AltContext::getLineHeight() const
 {
 	return FontMetrics->height() + 1;
 }
+
 
 /**
  * openFile opens the given file to its context
@@ -417,6 +542,7 @@ void AltContext::openFile(const QString &fileName)
   QFile file(fileName);
   if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
     return;
+	LastUpdatedRow = 0;
  	Lines.clear();
   QTextStream in(&file);
 	Lines.reserve(1000);
@@ -433,7 +559,9 @@ void AltContext::openFile(const QString &fileName)
 	CaretPosition = QPoint(0, 0);
 }
 
-
+/**
+ * Ensure caret visibility
+ */
 void AltContext::ensureCaretVisibility()
 {
 
@@ -446,30 +574,24 @@ void AltContext::ensureCaretVisibility()
   int LineHeight = getLineHeight();
   int Line = -1;
   int Column = 0;
-  int sy = y() - LineHeight;
 	int StartX = getGutterWidth();
 
   AltFormatterBlockIterator bi(this);
   QPoint Point(StartX, -LineHeight);
   Point.setY(-LineHeight);
-
-	printf("ensure\n");
-  
+ 
 	while (bi.next()) {
 
     if (Line != bi.getRow())
     {
       Line = bi.getRow();
       Point = QPoint(StartX, Point.y() + LineHeight);
-      sy += LineHeight;
     }
 
     b = bi.getFormatterBlock();
     Column = bi.getColumn();
 
-		printf("%u:%u\n", Line, Column);
-
-    if (sy > -LineHeight) {
+    if (Point.y() > -LineHeight) {
 
       if ((Line == CaretPosition.y()) &&
           (CaretPosition.x() >= Column) &&
@@ -483,7 +605,6 @@ void AltContext::ensureCaretVisibility()
          
 			  ((QScrollArea*)parentWidget()->parentWidget())->ensureVisible(temp.x(), temp.y());				
 				repaint();
-	printf("ensured 1\n");
         return;
       }
 
@@ -497,10 +618,12 @@ void AltContext::ensureCaretVisibility()
 		Point += QPoint(FontMetrics->width(bi.getPart()), 0);
   }
 
-	printf("ensured 2\n");
 }
 
 
+/**
+ * Transform point to a caret position
+ */
 QPoint AltContext::pointToCaretPosition(const QPoint &pt) const
 {
 	QPoint Result(-1, -1);
@@ -552,6 +675,9 @@ QPoint AltContext::pointToCaretPosition(const QPoint &pt) const
 }
 
 
+/**
+ * Act on mouse click events
+ */
 void AltContext::mousePressEvent(QMouseEvent *event)
 {
   if (event->button() == Qt::LeftButton) 
@@ -568,6 +694,9 @@ void AltContext::mousePressEvent(QMouseEvent *event)
 }
 
 
+/**
+ * Acts on mouse release events
+ */
 void AltContext::mouseReleaseEvent(QMouseEvent *event)
 {
   if (event->button() == Qt::LeftButton) 
@@ -579,12 +708,13 @@ void AltContext::mouseReleaseEvent(QMouseEvent *event)
 			Selection[1] = CaretPosition;
 		  Painting = false;
 	    repaint();
-			//printf("%u:%u -> %u:%u\n", Selection[0].x(), Selection[0].y(), Selection[1].x(), Selection[1].y());
 	  }  
 	}
 }
 
-
+/**
+ * Act on mouse move event
+ */
 void AltContext::mouseMoveEvent(QMouseEvent *event) 
 {
   if (Painting) 
@@ -600,18 +730,26 @@ void AltContext::mouseMoveEvent(QMouseEvent *event)
 	}
 }
 
-
+/**
+ * Get minimum size of the window
+ */
 QSize AltContext::minimumSizeHint() const
 {
  return QSize(100, Lines.size() * 20);
 }
 
+/**
+ * Get size hinting 
+ */
 QSize AltContext::sizeHint() const
 {
   return QSize(400, 200);
 }
 
 
+/**
+ * Get the width of the gutter
+ */
 int AltContext::getGutterWidth() const
 {
   return 10;
@@ -626,7 +764,6 @@ void AltContext::paintEvent(QPaintEvent *)
 	QPainter painter(this);
 	painter.setFont(*Font);
 	
-	printf("render\n");
 	const AltFormatterBlock *b;
 
 	QPoint point;
@@ -636,12 +773,10 @@ void AltContext::paintEvent(QPaintEvent *)
 	int LineHeight = getLineHeight();
 	int Line = -1;
 	int Column = 0;
-	int sy = y() - LineHeight;
 	int StartX = getGutterWidth();
 
 	AltFormatterBlockIterator bi(this);
 	QPoint Point(StartX, -LineHeight);
-	Point.setY(-LineHeight);
 	
 	bool HasSelection = hasSelection();
 	int ss = 0, se = 1;
@@ -654,131 +789,142 @@ void AltContext::paintEvent(QPaintEvent *)
 		se = 0;
 		ss = 1;
 	}
+
+  int FirstVisibleLine = y() / -LineHeight;
+	int StartLine = 0;
+
+	if (LastUpdatedRow < FirstVisibleLine) 
+	{
+  	StartLine = LastUpdatedRow;  
+	}
+	else 
+	{
+  	StartLine = FirstVisibleLine;  
+	}
+
+  bi.setRow(StartLine);
+	Point.setY((StartLine * LineHeight) - LineHeight);
 	
-	while (bi.next()) {
+	while (bi.next() && Point.y() < parentWidget()->height() + -y()) {
 		
 		if (Line != bi.getRow())
 		{
 			Line = bi.getRow();
 		  Point = QPoint(StartX, Point.y() + LineHeight);
-			sy += LineHeight;
 		}
 		b = bi.getFormatterBlock();
 		Column = bi.getColumn();
-  	
-	  printf("%u:%u\n", Column, Line);	
-		if (sy > -LineHeight) {
+  
+   	painter.setBackgroundMode(Qt::OpaqueMode);
 
-    	painter.setBackgroundMode(Qt::OpaqueMode);
+		if (HasSelection && Line >= Selection[ss].y() && Line <= Selection[se].y())
+		{
+		  QString Part = bi.getPart();
+		  int s = 0, e = Part.length();
 
-			if (HasSelection && Line >= Selection[ss].y() && Line <= Selection[se].y())
+			if (Selection[ss].y() == Line) 
 			{
-			  QString Part = bi.getPart();
-			  int s = 0, e = Part.length();
+			  if ((Selection[ss].x() >= Column) &&
+					(Selection[ss].x() <= Column + e)) 
+					s = Selection[ss].x() - Column;
+				else if (Selection[ss].x() > Column + e)
+					s = e;
+			}
 
-				if (Selection[ss].y() == Line) 
+			if (Selection[se].y() == Line)
+			{
+        if ((Selection[se].x() >= Column) &&
+          (Selection[se].x() <= Column + e))
+          e = Selection[se].x() - Column;
+				else if (Selection[se].x() < Column)
+					e = s;
+			}
+
+			QPoint TempPoint = Point + QPoint(0, LineHeight);
+
+			if (s < e) {
+				if (s > 0)
 				{
-				  if ((Selection[ss].x() >= Column) &&
-						(Selection[ss].x() <= Column + e)) 
-						s = Selection[ss].x() - Column;
-					else if (Selection[ss].x() > Column + e)
-						s = e;
-				}
-
-				if (Selection[se].y() == Line)
-				{
-          if ((Selection[se].x() >= Column) &&
-            (Selection[se].x() <= Column + e))
-            e = Selection[se].x() - Column;
-					else if (Selection[se].x() < Column)
-						e = s;
-				}
-
-				QPoint TempPoint = Point + QPoint(0, LineHeight);
-
-				if (s < e) {
-					if (s > 0)
-					{
-					  // print preceeding non-selection
-				    painter.setPen(b->getTextColor());
-            painter.setBackground(QBrush(b->getBackgroundColor()));
-            painter.drawText(TempPoint, Part.left(s));
-					  TempPoint += QPoint(FontMetrics->width(Part.left(s)), 0);
-					}
-					
-					// print selection
-				  painter.setPen(b->getBackgroundColor());
-          painter.setBackground(QBrush(b->getTextColor()));
-          painter.drawText(TempPoint, Part.mid(s, e - s));
-					TempPoint += QPoint(FontMetrics->width(Part.mid(s, e - s)), 0);
-
-					if (e < Part.length())
-					{
-					  // print proceeding non-selection
-				    painter.setPen(b->getTextColor());
-            painter.setBackground(QBrush(b->getBackgroundColor()));
-            painter.drawText(TempPoint, Part.right(Part.length() - e));
-					}
-				} else {
-				  painter.setPen(b->getTextColor());
+				  // print preceeding non-selection
+			    painter.setPen(b->getTextColor());
           painter.setBackground(QBrush(b->getBackgroundColor()));
-          painter.drawText(TempPoint, Part);
+          painter.drawText(TempPoint, Part.left(s));
+				  TempPoint += QPoint(FontMetrics->width(Part.left(s)), 0);
 				}
+					
+				// print selection
+			  painter.setPen(b->getBackgroundColor());
+        painter.setBackground(QBrush(b->getTextColor()));
+        painter.drawText(TempPoint, Part.mid(s, e - s));
+				TempPoint += QPoint(FontMetrics->width(Part.mid(s, e - s)), 0);
 
-			}
-			else
-	  	{
-			  // Not within selection
-    	  painter.setPen(b->getTextColor());
+				if (e < Part.length())
+				{
+				  // print proceeding non-selection
+			    painter.setPen(b->getTextColor());
+           painter.setBackground(QBrush(b->getBackgroundColor()));
+           painter.drawText(TempPoint, Part.right(Part.length() - e));
+				}
+			} else {
+			  painter.setPen(b->getTextColor());
         painter.setBackground(QBrush(b->getBackgroundColor()));
-        painter.drawText(Point + QPoint(0, LineHeight), bi.getPart());
+        painter.drawText(TempPoint, Part);
 			}
 
-      if ((Line == CaretPosition.y()) &&
-          (CaretPosition.x() >= Column) &&
-          (CaretPosition.x() <= Column + bi.getPart().length()))
-	  	{
-      	QPainter::CompositionMode old = painter.compositionMode();
-    		painter.setPen(Qt::black);
-	  		painter.setBrush(QBrush(Qt::black));
-      	QRect temp = QRect(
-	  			Point.x() + FontMetrics->width(bi.getPart(), CaretPosition.x() - Column), 
-		  		Point.y(),
-		  		2,
-		  		LineHeight
-	  		);
-	  		painter.drawRect(temp);
-
-				QString xstr, ystr;
-				xstr.setNum(CaretPosition.x() + 1);
-				ystr.setNum(CaretPosition.y() + 1);
-				QString out = xstr + ":" + ystr;
-				int w = FontMetrics->width(out);
-				QPoint pt(parentWidget()->width() - (w +5 ), Point.y() + LineHeight);
-
-  	    painter.setBackground(QBrush(Qt::white));
-        painter.setPen(Qt::lightGray);
-        painter.drawText(pt, out);
-	   	  pt += QPoint(-1,-1);
-        painter.setBackgroundMode(Qt::TransparentMode);
-     	  painter.setPen(Qt::black);
-        painter.drawText(pt, out);
-
-				//painter.drawText(pt, out);
-
-		  	painter.setCompositionMode(old);
-		  }
-		  
-			if (bi.endOfLine()) 
-		  	this->Lines[Line].setStack(bi.getLineStack());
 		}
-    
+		else
+	  {
+		  // Not within selection
+      painter.setPen(b->getTextColor());
+      painter.setBackground(QBrush(b->getBackgroundColor()));
+      painter.drawText(Point + QPoint(0, LineHeight), bi.getPart());
+		}
 
+    if ((Line == CaretPosition.y()) &&
+        (CaretPosition.x() >= Column) &&
+          (CaretPosition.x() <= Column + bi.getPart().length()))
+	  {
+     	QPainter::CompositionMode old = painter.compositionMode();
+    	painter.setPen(Qt::black);
+	  	painter.setBrush(QBrush(Qt::black));
+     	QRect temp = QRect(
+    		Point.x() + FontMetrics->width(bi.getPart(), CaretPosition.x() - Column), 
+	   		Point.y(),
+	   		2,
+	    	LineHeight
+  	  );
+    	painter.drawRect(temp);
+  	 	QString xstr, ystr;
+  		xstr.setNum(CaretPosition.x() + 1);
+  		ystr.setNum(CaretPosition.y() + 1);
+  		QString out = xstr + ":" + ystr;
+  		int w = FontMetrics->width(out);
+  		QPoint pt((-x()) + parentWidget()->width() - (w +5 ), Point.y() + LineHeight);
+
+  	  painter.setBackground(QBrush(Qt::white));
+      painter.setPen(Qt::lightGray);
+      painter.drawText(pt, out);
+	    pt += QPoint(-1,-1);
+      painter.setBackgroundMode(Qt::TransparentMode);
+      painter.setPen(Qt::black);
+      painter.drawText(pt, out);
+
+			//painter.drawText(pt, out);
+
+		 	painter.setCompositionMode(old);
+		}
+		  
 		if (bi.endOfLine()) 
    		this->Lines[Line].setStack(bi.getLineStack());
 
 		Point += QPoint(FontMetrics->width(bi.getPart()), 0);
   }
+
+	if (Line > LastUpdatedRow)
+	{
+  	LastUpdatedRow = Line;
+	}
+
   Point = QPoint(0, Point.y() + LineHeight + 5);
   painter.setPen(Qt::black);
   painter.setBrush(QBrush(Qt::black));
@@ -796,7 +942,7 @@ void AltContext::paintEvent(QPaintEvent *)
   	painter.setBackground(QBrush(Qt::white));
     painter.setPen(Qt::lightGray);
   	int w = FontMetrics->width(FileName);
-    QPoint pt(parentWidget()->width() - (w + 5 ), LineHeight - y());
+    QPoint pt((-x()) + parentWidget()->width() - (w + 5 ), LineHeight - y());
     painter.drawText(pt, FileName);
 		pt += QPoint(-1,-1);
 		painter.setBackgroundMode(Qt::TransparentMode);
@@ -804,6 +950,5 @@ void AltContext::paintEvent(QPaintEvent *)
     painter.drawText(pt, FileName);
 	}
   
-	printf("done\n");
 }
 

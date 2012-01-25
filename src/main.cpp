@@ -9,16 +9,8 @@
 
 int main(int argc, char *argv[])
 {
-
-
-	QApplication app(argc, argv);
-/*
-QMessageBox::information( 0,
-      "Start Fullscreen?",
-      "Would You Like To Run In Fullscreen Mode?",
-      QMessageBox::Yes,
-      QMessageBox::No | QMessageBox::Default );
-*/
+  QApplication app(argc, argv);
+	
 	Window window;
 	window.resize(window.sizeHint());
 

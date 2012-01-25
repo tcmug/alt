@@ -15,16 +15,17 @@ AltFormatterSyntax::AltFormatterSyntax()
 			AltFormatterBlock *block;
 			
 			block = new AltFormatterBlock(AltFormatterSyntax::TARGET_ROOT);
-			block->setTextColor(Qt::red);
+			block->setTextColor(Qt::black);
 			block->setBackgroundColor(Qt::white);
 			block->addFormatterPair(new AltFormatterPair("[0-9]", "ENTER", "Character"));
 			block->addFormatterPair(new AltFormatterPair("\\<\\?php", "ENTER", "PHP"));
+			block->addFormatterPair(new AltFormatterPair("\"", "ENTER", "String"));
 			block->addFormatterPair(new AltFormatterPair("#", "ENTER", "#"));
 			BlockMap[block->getName()] = block;
 
 			block = new AltFormatterBlock("Character");
-			block->setTextColor(Qt::white);
-			block->setBackgroundColor(Qt::red);
+			block->setTextColor(Qt::gray);
+			block->setBackgroundColor(Qt::white);
 			block->addFormatterPair(new AltFormatterPair("[^0-9]", "ENTER", "POP"));
 			BlockMap[block->getName()] = block;
 
@@ -38,6 +39,12 @@ AltFormatterSyntax::AltFormatterSyntax()
 			block->setTextColor(Qt::green);
 			block->setBackgroundColor(Qt::white);
 			block->addFormatterPair(new AltFormatterPair("[^#a-zA-Z]", "ENTER_AFTER", "POP"));
+			BlockMap[block->getName()] = block;
+
+			block = new AltFormatterBlock("String");
+			block->setTextColor(Qt::blue);
+			block->setBackgroundColor(Qt::white);
+			block->addFormatterPair(new AltFormatterPair("[^\\\\]\"", "ENTER_AFTER", "POP"));
 			BlockMap[block->getName()] = block;
 }
 
