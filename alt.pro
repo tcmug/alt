@@ -4,16 +4,20 @@ TARGET =
 DEPENDPATH += . src
 VPATH += ../shared
 INCLUDEPATH += ../shared
+INCLUDEPATH += ../../other/lua-5.2.0/src
+DEPENDPATH += ../../other/lua-5.2.0/src
+#CONFIG-=app_bundle
 
 # Input
-HEADERS += src/window.h src/altcontext.h src/altformattersyntax.h src/altfilerow.h src/altformatterblockiterator.cpp
-SOURCES += src/main.cpp src/window.cpp src/altcontext.cpp src/altformattersyntax.cpp src/altfilerow.cpp src/altformatterblockiterator.cpp
+HEADERS += src/window.h 
+HEADERS += src/altcontext.h src/altformattersyntax.h src/altfilerow.h src/altformatterblockiterator.cpp
+HEADERS += src/altlua.h
 
-# QT += opengl
+SOURCES += src/main.cpp src/window.cpp
+SOURCES += src/altcontext.cpp src/altformattersyntax.cpp src/altfilerow.cpp src/altformatterblockiterator.cpp
+SOURCES += src/altlua.c
 
-#target.path = $$[QT_INSTALL_EXAMPLES]/opengl/hellogl
-#sources.files = $$SOURCES $$HEADERS $$RESOURCES $$FORMS hellogl.pro
-#sources.path = $$[QT_INSTALL_EXAMPLES]/opengl/hellogl
-#INSTALLS += target sources
+LIBS += -L../../other/lua-5.2.0/src/
+LIBS += -llua
+LIBS += -dead_strip 
 
-#symbian: include($$QT_SOURCE_TREE/examples/symbianpkgrules.pri)
