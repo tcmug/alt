@@ -74,7 +74,12 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 	int OldLines = Lines.size();
 
   switch (e->key()) {
-	
+		
+		// Leave these out
+		case Qt::Key_Control:
+		case Qt::Key_Shift:
+		break;
+
 		case Qt::Key_Up:
 			if (CaretPosition.y() > 0) 
 			{
@@ -164,25 +169,13 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 		case Qt::Key_Z:
 		{ // O
   		const Qt::KeyboardModifiers modifiers = e->modifiers();
-		  if (modifiers == Qt::ControlModifier) 
+		  if (modifiers & Qt::ControlModifier) 
 			{
-				if (HistoryTop > 0) 
-				{
-				  HistoryTop--;
-				  switch (History[HistoryTop].Type)
-				  {
-				  	case AltHistoryEvent::Insert:
-				  		erase(History[HistoryTop].Positions[0], History[HistoryTop].Positions[1], false);	
-				  	break;
-
-				  	case AltHistoryEvent::Erase:
-				  		insert(History[HistoryTop].Positions[0], History[HistoryTop].String, false);	
-				  	break;
-				  }
-
-					repaint();
-					printf("%u %u\n", HistoryTop, History.size());
-				}
+		  	if (modifiers & Qt::ShiftModifier) 
+					redo();
+  			else
+					undo();
+				repaint();
 			}
 			else
 			{
@@ -302,6 +295,80 @@ void AltContext::keyReleaseEvent(QKeyEvent *e)
 
 
 /**
+ * Undo according to history
+ */
+bool AltContext::undo()
+{
+	if (HistoryTop) 
+	{
+		HistoryTop--;
+    switch (History[HistoryTop].Type)
+	  {
+	   	case AltHistoryEvent::Insert:
+		  	CaretPosition = erase(History[HistoryTop].Positions[0], History[HistoryTop].Positions[1], false);	
+		  break;
+	 	  case AltHistoryEvent::Erase:
+  	  	CaretPosition = insert(History[HistoryTop].Positions[0], History[HistoryTop].String, false);	
+		  break;
+    }
+		return true;
+	}
+	return false;
+}
+
+
+
+/**
+ * Redo according to history
+ */
+bool AltContext::redo()
+{
+	if (HistoryTop < History.size()) 
+	{
+    switch (History[HistoryTop].Type)
+	  {
+	   	case AltHistoryEvent::Erase:
+		  	CaretPosition = erase(History[HistoryTop].Positions[0], History[HistoryTop].Positions[1], false);	
+		  break;
+	 	  case AltHistoryEvent::Insert:
+  	  	CaretPosition = insert(History[HistoryTop].Positions[0], History[HistoryTop].String, false);
+		  break;
+    }
+		HistoryTop++;
+		return true;
+	}
+	return false;
+}
+
+
+/**
+ * Grab text between points
+ */
+QString AltContext::grab(const QPoint &b, const QPoint &e) const 
+{
+	QString Copy;
+	if (b.y() == e.y())
+	{
+		Copy = Lines[b.y()].getString().mid(
+		  b.x(),
+			e.x() - b.x()
+		);
+	}
+	else
+	{
+		Copy = Lines[b.y()].getString().right(
+			Lines[b.y()].getString().length() - b.x()
+		) + "\n";
+	  for (int Line = b.y() + 1; Line < e.y(); Line++)
+	  {
+			Copy += Lines[Line].getString() + "\n";
+	  }
+		Copy += Lines[e.y()].getString().left(e.x());
+	}
+	return Copy;
+}
+
+/**
  * Copy selected text
  */
 void AltContext::copy() 
@@ -320,24 +387,7 @@ void AltContext::copy()
 	  	se = 0;
 		  ss = 1;
   	}
-		if (Selection[ss].y() == Selection[se].y())
-		{
-			Copy = Lines[Selection[ss].y()].getString().mid(
-				Selection[ss].x(),
-				Selection[se].x() - Selection[ss].x()
-			);
-		}
-		else
-		{
-			Copy = Lines[Selection[ss].y()].getString().right(
-				Lines[Selection[ss].y()].getString().length() - Selection[ss].x()
-			) + "\n";
-		  for (int Line = Selection[ss].y() + 1; Line < Selection[se].y(); Line++)
-		  {
-				Copy += Lines[Line].getString() + "\n";
-		  }
-			Copy += Lines[Selection[se].y()].getString().left(Selection[se].x());
-		}
+		Copy = grab(Selection[ss], Selection[se]);
 	}
 	else
 	{
@@ -453,7 +503,7 @@ QPoint AltContext::insert(const QPoint &p, const QString &str, bool record)
 
 
 
-/*
+/**
  * Erase from position to a position
  */
 QPoint AltContext::erase(const QPoint &fromp, const QPoint &top, bool record)
@@ -463,7 +513,7 @@ QPoint AltContext::erase(const QPoint &fromp, const QPoint &top, bool record)
   event.Type = AltHistoryEvent::Erase;
   event.Positions[0] = fromp;
   event.Positions[1] = top;
-
+  event.String = grab(fromp, top);
 	QPoint from = fromp;
 	QPoint to = top;
 

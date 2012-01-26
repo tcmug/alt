@@ -61,7 +61,12 @@ class AltContext : public QWidget
 
 		void copy();
 		void paste();
+		bool undo();
+		bool redo();
 		void eraseSelection();
+		
+		
+		QString grab(const QPoint &b, const QPoint &e) const;
 
   	QPoint pointToCaretPosition(const QPoint &pt) const;
 		
