@@ -7,10 +7,16 @@
 #include "window.h"
 #include "altformattersyntax.h"
 
+#include "altlua.h"
+
+
+
 int main(int argc, char *argv[])
 {
   QApplication app(argc, argv);
 	
+	luaAlt_init();
+
 	Window window;
 	window.resize(window.sizeHint());
 
