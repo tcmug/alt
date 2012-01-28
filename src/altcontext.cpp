@@ -22,9 +22,7 @@ AltContext::AltContext(QWidget *parent)
   setBackgroundRole(QPalette::Base);
   setAutoFillBackground(true);
 
-  Font = new QFont("Courier", 12, QFont::Normal);
-	Font->setStyleHint(QFont::TypeWriter);
-	FontMetrics = new QFontMetrics(*Font);
+  setFontSize(12);
 	setFocusPolicy(Qt::StrongFocus);
 
 	Formatter = new AltFormatterSyntax();
@@ -165,10 +163,22 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 			CaretPosition = this->insert(CaretPosition, "\n");
 			repaint();
 		break;
-		
+
+		case Qt::Key_Minus:
+		{
+			setFontSize(FontSize-1);
+		}
+		break;
+
+		case Qt::Key_Plus:
+		{
+			setFontSize(FontSize+1);
+		}
+		break;
+
 		case Qt::Key_Z:
 		{ // O
-  		const Qt::KeyboardModifiers modifiers = e->modifiers();
+						const Qt::KeyboardModifiers modifiers = e->modifiers();
 		  if (modifiers & Qt::ControlModifier) 
 			{
 		  	if (modifiers & Qt::ShiftModifier) 
@@ -287,6 +297,17 @@ void AltContext::keyPressEvent(QKeyEvent *e)
 	this->ensureCaretVisibility();
 }
 
+
+void AltContext::setFontSize(int size) 
+{
+  if (size < 100 && size > 4) 
+  {
+  	FontSize = size;
+		Font = new QFont("Courier", FontSize, QFont::Normal);
+  	Font->setStyleHint(QFont::TypeWriter);
+   	FontMetrics = new QFontMetrics(*Font);
+  }
+}
 
 
 void AltContext::keyReleaseEvent(QKeyEvent *e) 
@@ -695,32 +716,40 @@ QPoint AltContext::pointToCaretPosition(const QPoint &pt) const
 	bi.setRow(Line);
  	
 	int x = getGutterWidth(), w, c = 0;
-	
-	while (bi.next()) 
+
+	if (pt.x() < x) 
 	{
-	  // check for end of line
-		if (Line != bi.getRow())
-		  break;
-
-		const QString &temp = bi.getPart();
-		w = FontMetrics->width(temp);
-		if (pt.x() <= x + w) 
-		{	
-			for (int i = 0; i < temp.length()+1; i++)
-			{
-			  int tx = x + FontMetrics->width(temp, i);
-				if (pt.x() < tx) 
-				{
-					Result.setX(c + i - 1);
-					return Result;
-				}
-			}
-		}
-		c += temp.length();
-		x += w;
+		Result.setX(0);
 	}
+	else 
+	{
 
-	Result.setX(Lines[Result.y()].getString().length());
+	  while (bi.next()) 
+	  {
+	    // check for end of line
+		  if (Line != bi.getRow())
+		    break;
+
+		  const QString &temp = bi.getPart();
+	  	w = FontMetrics->width(temp);
+	  	if (pt.x() <= x + w) 
+	  	{	
+	  		for (int i = 0; i < temp.length()+1; i++)
+	  		{
+	 	  	  int tx = x + FontMetrics->width(temp, i);
+	  			if (pt.x() < tx) 
+	  			{
+		  			Result.setX(c + i - 1);
+		  			return Result;
+		  		}
+		  	}
+		  }
+	  	c += temp.length();
+	  	x += w;
+  	}
+	  Result.setX(Lines[Result.y()].getString().length());
+  }
+
 	return Result;
 }
 
@@ -802,7 +831,7 @@ QSize AltContext::sizeHint() const
  */
 int AltContext::getGutterWidth() const
 {
-  return 10;
+  return 20;
 }
 
 
@@ -975,9 +1004,9 @@ void AltContext::paintEvent(QPaintEvent *)
   	LastUpdatedRow = Line;
 	}
 
-  Point = QPoint(0, Point.y() + LineHeight + 5);
-  painter.setPen(Qt::black);
-  painter.setBrush(QBrush(Qt::black));
+  Point = QPoint(0, Point.y() + LineHeight * 1.5);
+  painter.setPen(Qt::lightGray);
+  painter.setBrush(QBrush(Qt::lightGray));
   QRect temp = QRect(
     Point.x(),
 		Point.y(),
@@ -986,7 +1015,17 @@ void AltContext::paintEvent(QPaintEvent *)
   );
   
 	painter.drawRect(temp);
- 
+
+  painter.setPen(Qt::lightGray);
+  painter.setBrush(QBrush(Qt::lightGray));
+  QRect temp2 = QRect(
+    0,
+		-y(),
+    getGutterWidth() - 1,
+    -y() + parentWidget()->height()
+  ); 
+	painter.drawRect(temp2);
+
   if (ShowFileName) 
 	{
   	painter.setBackground(QBrush(Qt::white));

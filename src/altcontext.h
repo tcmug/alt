@@ -39,11 +39,13 @@ class AltContext : public QWidget
 
 		QFont *Font;
 		QFontMetrics *FontMetrics;
+		int FontSize;
 		QString FileName;
 		bool ShowFileName;
 
 		int LastUpdatedRow;
-
+		
+		void setFontSize(int size);
     void paintEvent(QPaintEvent *event);
 
 		QVector <AltFileRow> Lines;
