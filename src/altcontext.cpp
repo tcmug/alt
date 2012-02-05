@@ -332,6 +332,7 @@ bool AltContext::undo()
   	  	CaretPosition = insert(History[HistoryTop].Positions[0], History[HistoryTop].String, false);	
 		  break;
     }
+		Selection[0] = Selection[1] = QPoint(0,0);
 		return true;
 	}
 	return false;
@@ -356,6 +357,7 @@ bool AltContext::redo()
 		  break;
     }
 		HistoryTop++;
+		Selection[0] = Selection[1] = QPoint(0,0);
 		return true;
 	}
 	return false;
@@ -976,7 +978,7 @@ void AltContext::paintEvent(QPaintEvent *)
   	 	QString xstr, ystr;
   		xstr.setNum(CaretPosition.x() + 1);
   		ystr.setNum(CaretPosition.y() + 1);
-  		QString out = xstr + ":" + ystr;
+  		QString out = ystr + ":" + xstr;
   		int w = FontMetrics->width(out);
   		QPoint pt((-x()) + parentWidget()->width() - (w +5 ), Point.y() + LineHeight);
 
@@ -987,8 +989,6 @@ void AltContext::paintEvent(QPaintEvent *)
       painter.setBackgroundMode(Qt::TransparentMode);
       painter.setPen(Qt::black);
       painter.drawText(pt, out);
-
-			//painter.drawText(pt, out);
 
 		 	painter.setCompositionMode(old);
 		}
