@@ -10,10 +10,11 @@ QString AltFormatterSyntax::TARGET_ROOT = "ROOT";
 QString AltFormatterSyntax::TARGET_POP = "POP";
 
 AltFormatterSyntax::AltFormatterSyntax()
-		{
+{
 
 			AltFormatterBlock *block;
-			
+
+		
 			block = new AltFormatterBlock(AltFormatterSyntax::TARGET_ROOT);
 			block->setTextColor(Qt::black);
 			block->setBackgroundColor(Qt::white);
