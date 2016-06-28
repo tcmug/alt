@@ -18,9 +18,12 @@
 	#include "wx/scrolwin.h"
 	#include "wx/menu.h"
 
+    #include "wx/sizer.h"
+    #include "wx/textctrl.h"
 	#include "wx/textdlg.h"       // for wxGetTextFromUser
 #endif
 
+#include "wx/treelist.h"
 #include "wx/splitter.h"
 #include "wx/dcmirror.h"
 

@@ -1,9 +1,15 @@
 
-WX_CONFIG = /Users/tmer/dev/3rd/wxWidgets-3.1.0/build-release/wx-config
+# GENERICS
 CC = g++
 COMMON_FLAGS = -mmacosx-version-min=10.7 -arch x86_64
 
-# Port of the wx library to build against [gtk1,gtk2,msw,x11,motif,osx_cocoa,osx_carbon,dfb]
+# LUA CONFIG
+LUA_DIR = /Users/tmer/dev/3rd/lua-5.3.3/src
+LUA_LDFLAGS = -L$(LUA_DIR) -llua
+LUA_CFLAGS = -I$(LUA_DIR)
+
+# WX CONFIG
+WX_CONFIG = /Users/tmer/dev/3rd/wxWidgets-3.1.0/build-release/wx-config
 WX_PORT ?= $(shell $(WX_CONFIG) --query-toolkit)
 WX_VERSION ?= $(shell $(WX_CONFIG) --query-version | sed -e 's/\([0-9]*\)\.\([0-9]*\)/\1\2/')
 WX_VERSION_MAJOR = $(shell echo $(WX_VERSION) | cut -c1,1)
@@ -14,9 +20,9 @@ WX_LDFLAGS = $(shell $(WX_CONFIG) --libs --static $(WX_CONFIG_FLAGS))
 WX_CFLAGS = `$(WX_CONFIG) --cxxflags --static $(WX_CONFIG_FLAGS)`
 WX_LDFLAGS = `$(WX_CONFIG) --libs --static $(WX_CONFIG_FLAGS)`
 
-
-CFLAGS = $(COMMON_FLAGS) -O2 -Wall $(WX_CFLAGS)
-LDFLAGS = -ffunction-sections -fdata-sections -Wl $(COMMON_FLAGS) -dead_strip $(WX_LDFLAGS)
+# SPECIFICS
+CFLAGS = $(COMMON_FLAGS) -O2 -Wall $(WX_CFLAGS) $(LUA_CFLAGS)
+LDFLAGS = -ffunction-sections -fdata-sections -Wl $(COMMON_FLAGS) -dead_strip $(WX_LDFLAGS) $(LUA_LDFLAGS)
 
 CORE_SRC := $(wildcard src/core/*.cpp)
 CORE_OBJ := $(patsubst src/core/%.cpp,tmp/core_%.o,$(CORE_SRC))

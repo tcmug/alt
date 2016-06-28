@@ -1,8 +1,8 @@
 
 #include "main.hpp"
 
-#include "core/alt_ide.hpp"
-
+#include "core/ide.hpp"
+#include "core/lua.hpp"
 
 class alt_ide_app: public wxApp {
 
@@ -24,7 +24,7 @@ bool alt_ide_app::OnInit() {
 	if ( !wxApp::OnInit() )
 		return false;
 
-	alt_ide* frame = new alt_ide;
+	alt::ide* frame = new alt::ide();
 	frame->Show(true);
 
 	return true;
