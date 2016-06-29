@@ -20,8 +20,6 @@ wxEND_EVENT_TABLE()
 
 
 
-
-
 config_dialog::config_dialog(wxWindow *parent)
 	:wxDialog(parent, wxID_ANY, wxString(wxT("...")),
 	wxDefaultPosition, wxDefaultSize, wxDEFAULT_DIALOG_STYLE | wxRESIZE_BORDER) {
@@ -94,7 +92,7 @@ config_dialog::config_dialog(wxWindow *parent)
 	sizer->Add(tree, wxSizerFlags(2).Expand());
 	// .Border(wxALL, 10)
 	wxSizer* button_sizer = new wxBoxSizer(wxHORIZONTAL);
-	button_sizer->Add(new wxButton(this, wxID_ANY, wxT("&Cancel")), 0, wxALIGN_CENTER | wxALL, 5);
+	button_sizer->Add(new wxButton(this, wxID_CLOSE, wxT("&Cancel")), 0, wxALIGN_CENTER | wxALL, 5);
 	button_sizer->Add(new wxButton(this, wxID_SavePreferences, wxT("&Save")), 0, wxALIGN_CENTER | wxALL, 5);
 	sizer->Add(button_sizer, 0, wxALIGN_RIGHT | wxALL, 5);
 	SetSizer(sizer);
@@ -127,57 +125,73 @@ void config_dialog::init_by_function(const char *get_func, const char *set_func)
 		return;
 	}
 
-	lua_pushstring(L,"save");
-	lua_gettable(L,-2);
-	if (lua_isnil(L, -1)) {
-		printf("No alt.save\n");
-		return;
-	}
+	// lua_pushstring(L,"save");
+	// lua_gettable(L,-2);
+	// if (lua_isnil(L, -1)) {
+	// 	printf("No alt.save\n");
+	// 	return;
+	// }
 
-	lua_pcall(L, 0, 0, 0);
+	//lua_pcall(L, 0, 0, 0);
 
-	lua_pushstring(L,"syntax");
+	lua_pushstring(L,"config");
 	lua_gettable(L,-2);
 	if (lua_isnil(L, -1)) {
 		printf("No alt.syntax\n");
 		return;
 	}
 
-	lua_remove(L,-2);
-	lua_pushstring(L,"highlighting");
-	lua_gettable(L,-2);
-	lua_remove(L,-2);
+	this->loop_config_tree(tree->GetRootItem());
 
-	for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-		const char *c = lua_tostring(L, -2);
-		printf("%s\n", c);
-		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-			const char *c = lua_tostring(L, -2);
-			printf(" - %s\n", c);
-			if (lua_istable(L, -1)) {
-				for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-					const char *c = lua_tostring(L, -2);
-					printf("   - %s\n", c);
-					if (lua_istable(L, -1)) {
-						for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-							int i = lua_tointeger(L, -2);
-							printf("   - %u\n", i);
-							if (lua_istable(L, -1)) {
-								for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-									const char *c = lua_tostring(L, -2);
-									const char *p = lua_tostring(L, -1);
-									printf("       - %s %s\n", c, p);
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-	}
+
+	// for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+	// 	const char *c = lua_tostring(L, -2);
+	// 	printf(" - %s\n", c);
+	// 	if (lua_istable(L, -1)) {
+	// 		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+	// 			const char *c = lua_tostring(L, -2);
+	// 			printf("   - %s\n", c);
+	// 			if (lua_istable(L, -1)) {
+	// 				for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+	// 					int i = lua_tointeger(L, -2);
+	// 					printf("   - %u\n", i);
+	// 					if (lua_istable(L, -1)) {
+	// 						for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+	// 							const char *c = lua_tostring(L, -2);
+	// 							const char *p = lua_tostring(L, -1);
+	// 							printf("       - %s %s\n", c, p);
+	// 						}
+	// 					}
+	// 				}
+	// 			}
+	// 		}
+	// 	}
+	// }
 
 }
 
+
+void config_dialog::loop_config_tree(wxTreeListItem parent) {
+
+	lua_State *L = this->lua->get_state();
+
+	for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
+
+		const char *key = lua_tostring(L, -2);
+
+		wxTreeListItem item = tree->AppendItem(
+			parent, key, 0, 0
+		);
+
+		if (lua_istable(L, -1)) {
+			this->loop_config_tree(item);
+		} else {
+			const char *value = lua_tostring(L, -1);
+			printf("%s %s\n", key, value);
+			tree->SetItemText(item, 1, value);
+		}
+	}
+}
 
 void config_dialog::OnSave(wxCommandEvent& WXUNUSED(event)) {
 	lua_State *L = this->lua->get_state();

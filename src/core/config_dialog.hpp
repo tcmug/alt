@@ -34,8 +34,9 @@ class config_dialog: public wxDialog {
         lua *lua;
         const char *set_callback;
 
-    public:
+        void loop_config_tree(wxTreeListItem parent);
 
+    public:
 
         config_dialog(wxWindow *parent);
 
