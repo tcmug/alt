@@ -14,8 +14,8 @@ enum {
 
 
 wxBEGIN_EVENT_TABLE(config_dialog, wxDialog)
-    EVT_TREELIST_ITEM_ACTIVATED(wxID_ANY, config_dialog::OnSelection)
-    EVT_BUTTON(wxID_SavePreferences, config_dialog::OnSave)
+	EVT_TREELIST_ITEM_ACTIVATED(wxID_ANY, config_dialog::OnSelection)
+	EVT_BUTTON(wxID_SavePreferences, config_dialog::OnSave)
 wxEND_EVENT_TABLE()
 
 
@@ -44,8 +44,8 @@ config_dialog::config_dialog(wxWindow *parent)
    tree->SetItemText(item, Col_Size, size)
 */
 
-   	this->lua = &dynamic_cast <ide*>(parent)->get_lua();
-	SetTitle(wxT("Configuration"));
+	this->lua = &dynamic_cast <ide*>(parent)->get_lua();
+
 
 	tree->AppendColumn("Configuration",
 					   tree->WidthFor("Something"),
@@ -57,36 +57,36 @@ config_dialog::config_dialog(wxWindow *parent)
 					   wxALIGN_LEFT,
 					   wxCOL_RESIZABLE | wxCOL_SORTABLE);
 
-	wxTreeListItem item, root = tree->GetRootItem();
+	// wxTreeListItem item, root = tree->GetRootItem();
 
-	wxTreeListItem parentitem = tree->AppendItem(
-		root, "Compiler", 0, 0
-	);
+	// wxTreeListItem parentitem = tree->AppendItem(
+	// 	root, "Compiler", 0, 0
+	// );
 
-	item = tree->AppendItem(
-		parentitem, "Compiler", 0, 0
-	);
-	tree->SetItemText(item, 1, "g++");
+	// item = tree->AppendItem(
+	// 	parentitem, "Compiler", 0, 0
+	// );
+	// tree->SetItemText(item, 1, "g++");
 
-	item = tree->AppendItem(
-		parentitem, "Parameters", 0, 0
-	);
-	tree->SetItemText(item, 1, "-o -Wall STUFF THERE IS IN THIS FIELD");
-	tree->Expand(parentitem);
+	// item = tree->AppendItem(
+	// 	parentitem, "Parameters", 0, 0
+	// );
+	// tree->SetItemText(item, 1, "-o -Wall STUFF THERE IS IN THIS FIELD");
+	// tree->Expand(parentitem);
 
-	parentitem = tree->AppendItem(
-		root, "GIT", 0, 0
-	);
+	// parentitem = tree->AppendItem(
+	// 	root, "GIT", 0, 0
+	// );
 
-	item = tree->AppendItem(
-		parentitem, "remote", 0, 0
-	);
-	tree->SetItemText(item, 1, "git@ssh.example.com");
-	tree->Expand(parentitem);
+	// item = tree->AppendItem(
+	// 	parentitem, "remote", 0, 0
+	// );
+	// tree->SetItemText(item, 1, "git@ssh.example.com");
+	// tree->Expand(parentitem);
 
 	//parentitem->expand();
 	//tree->ForceInitialize();  // <<< NEW LINE
-	tree->Expand(parentitem);
+
 
 	wxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 	sizer->Add(tree, wxSizerFlags(2).Expand());
@@ -105,6 +105,7 @@ config_dialog::config_dialog(wxWindow *parent)
 
 
 void config_dialog::init_by_function(const char *get_func, const char *set_func) {
+
 
 	lua_State *L = this->lua->get_state();
 
@@ -125,14 +126,12 @@ void config_dialog::init_by_function(const char *get_func, const char *set_func)
 		return;
 	}
 
-	// lua_pushstring(L,"save");
-	// lua_gettable(L,-2);
-	// if (lua_isnil(L, -1)) {
-	// 	printf("No alt.save\n");
-	// 	return;
-	// }
-
-	//lua_pcall(L, 0, 0, 0);
+	lua_pushstring(L, "name");
+	lua_gettable(L, -2);
+	if (lua_isstring(L, -1)) {
+		SetTitle(lua_tostring(L, -1));
+	}
+	lua_pop(L, 1);
 
 	lua_pushstring(L,"config");
 	lua_gettable(L,-2);
@@ -143,55 +142,139 @@ void config_dialog::init_by_function(const char *get_func, const char *set_func)
 
 	this->loop_config_tree(tree->GetRootItem());
 
-
-	// for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-	// 	const char *c = lua_tostring(L, -2);
-	// 	printf(" - %s\n", c);
-	// 	if (lua_istable(L, -1)) {
-	// 		for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-	// 			const char *c = lua_tostring(L, -2);
-	// 			printf("   - %s\n", c);
-	// 			if (lua_istable(L, -1)) {
-	// 				for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-	// 					int i = lua_tointeger(L, -2);
-	// 					printf("   - %u\n", i);
-	// 					if (lua_istable(L, -1)) {
-	// 						for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-	// 							const char *c = lua_tostring(L, -2);
-	// 							const char *p = lua_tostring(L, -1);
-	// 							printf("       - %s %s\n", c, p);
-	// 						}
-	// 					}
-	// 				}
-	// 			}
-	// 		}
-	// 	}
-	// }
-
+	tree->SetSortColumn(0);
 }
+
+
+class tree_item: public wxClientData {
+	private:
+
+		std::string name;
+		std::string value;
+
+	public:
+
+		enum TYPE {
+			PARENT,
+			STRING,
+			BOOLEAN,
+			NUMBER
+		};
+
+		TYPE type;
+
+		tree_item(TYPE type, const char *name, const char *value) {
+			this->name = name;
+			this->value = value;
+			this->type = type;
+		}
+		~tree_item() {
+			printf("Deleted\n");
+		}
+
+};
 
 
 void config_dialog::loop_config_tree(wxTreeListItem parent) {
 
 	lua_State *L = this->lua->get_state();
+	lua_pushnil(L);
+	wxTreeListItem item;
 
-	for (lua_pushnil(L); lua_next(L, -2); lua_pop(L, 1)) {
-
-		const char *key = lua_tostring(L, -2);
-
-		wxTreeListItem item = tree->AppendItem(
-			parent, key, 0, 0
-		);
-
+	while (lua_next(L, -2) != 0) {
 		if (lua_istable(L, -1)) {
-			this->loop_config_tree(item);
-		} else {
+
+			if (lua_isnumber(L, -2)) {
+
+				std::string name = this->lua->get_table_string("name");
+				std::string value = this->lua->get_table_string("value");
+
+				item = tree->AppendItem(
+					parent,
+					name.c_str(),
+					-1, -1,
+					new tree_item(
+						tree_item::STRING,
+						name.c_str(),
+						value.c_str()
+					)
+				);
+
+				tree->SetItemText(item, 1, value.c_str());
+
+				// Loop child items.
+				lua_pushstring(L, "kids");
+				lua_gettable(L, -2);
+				if (lua_istable(L, -1)) {
+					loop_config_tree(item);
+				}
+				lua_pop(L, 1);
+
+
+				//tree->Expand(parent);
+			}
+		}
+		lua_pop(L, 1);
+	}
+
+/*
+
+	while (lua_next(L, -2) != 0) {
+		if (lua_isstring(L, -1)) {
+			// String values.
+			const char *key = lua_tostring(L, -2);
 			const char *value = lua_tostring(L, -1);
-			printf("%s %s\n", key, value);
+			item = tree->AppendItem(
+				parent, key, -1, -1, new tree_item(tree_item::STRING, key, value)
+			);
 			tree->SetItemText(item, 1, value);
 		}
+		if (lua_isboolean(L, -1)) {
+			// Boolean values.
+			const char *key = lua_tostring(L, -2);
+			item = tree->AppendItem(
+				parent, key, -1, -1, new tree_item(tree_item::BOOLEAN, key, "TRUE")
+			);
+			tree->SetItemText(item, 1, "TRUE");
+		}
+		if (lua_isnumber(L, -1)) {
+			// Boolean values.
+			const char *key = lua_tostring(L, -2);
+			item = tree->AppendItem(
+				parent, key, -1, -1, new tree_item(tree_item::NUMBER, key, "10")
+			);
+			tree->SetItemText(item, 1, "10");
+		}
+		else if (lua_istable(L, -1)) {
+			// Table value, two alternatives:
+			if (lua_isnumber(L, -2)) {
+				// Ignore tables within tables.
+				// e.g. { { key = "value "}}
+				loop_config_tree(parent);
+				tree->Expand(parent);
+			}
+			else {
+				// Entry has child items.
+				const char *key = lua_tostring(L, -2);
+				const char *value = lua_tostring(L, -1);
+				item = tree->AppendItem(
+					parent, key, -1, -1, new tree_item(tree_item::PARENT, key, "BLAA")
+				);
+				tree->SetItemText(item, 1, value);
+				loop_config_tree(item);
+
+			}
+		}
+		lua_pop(L, 1);
 	}
+
+ */
+
+
+	tree->Expand(parent);
+
 }
+
 
 void config_dialog::OnSave(wxCommandEvent& WXUNUSED(event)) {
 	lua_State *L = this->lua->get_state();
@@ -219,14 +302,18 @@ void config_dialog::OnSave(wxCommandEvent& WXUNUSED(event)) {
 
 void config_dialog::OnSelection(wxTreeListEvent& event)
 {
-    const char* msg;
+	const char* msg;
 
-    wxTreeListItem item = event.GetItem();
-    wxString item_name = tree->GetItemText(item, 0) + ":";
-    wxString existing = tree->GetItemText(item, 1);
-    wxString hint = wxGetTextFromUser(item_name, "Edit item", existing, this);
+	wxTreeListItem item = event.GetItem();
+	wxClientData *data = tree->GetItemData(item);
 
-    tree->SetItemText(item, 1, hint);
+	tree_item *ti = dynamic_cast<tree_item*>(data);
 
+	if (ti && ti->type != tree_item::PARENT) {
+		wxString item_name = tree->GetItemText(item, 0) + ":";
+		wxString existing = tree->GetItemText(item, 1);
+		wxString hint = wxGetTextFromUser(item_name, "Edit item", existing, this);
+		tree->SetItemText(item, 1, hint);
+	}
 //    wxLogMessage(msg, DumpItem(event.GetItem()));
 }

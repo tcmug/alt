@@ -10,14 +10,25 @@ lua::lua() {
 	if (L)
 		printf("Lua VM started\n");
 
-	luaopen_io(L);
-	luaopen_base(L);
-	luaopen_table(L);
-	luaopen_string(L);
-	luaopen_math(L);
+
+	luaL_requiref(L, "io", luaopen_io, 1);
+	luaL_requiref(L, "base", luaopen_base, 1);
+	luaL_requiref(L, "math", luaopen_math, 1);
+	luaL_requiref(L, "table", luaopen_table, 1);
+	luaL_requiref(L, "string", luaopen_string, 1);
+	// luaopen_base(L);
+	// luaopen_string(L);
+	// luaopen_math(L);
+	// luaopen_package(L);
+	// luaopen_coroutine(L);
+	// luaopen_table(L);
+	// luaopen_io(L);
+	// luaopen_os(L);
+	// luaopen_utf8(L);
+	// luaopen_debug(L);
 
 	if (luaL_dofile(L, "preferences.lua") != 0) {
-		printf("NO preferences.lua\n");
+		printf("%s\n", lua_tostring(L, -1));
 		return;
 	}
 
@@ -81,3 +92,19 @@ lua::lua() {
 lua::~lua() {
 	lua_close(L);
 }
+
+
+
+
+
+std::string lua::get_table_string(const char *key) {
+	std::string value;
+	lua_pushstring(L, key);
+	lua_gettable(L, -2);
+	if (lua_isstring(L, -1)) {
+		value = lua_tostring(L, -1);
+	}
+	lua_pop(L, 1);
+	return value;
+}
+

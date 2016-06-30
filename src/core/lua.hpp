@@ -9,6 +9,8 @@ extern "C" {
 
 }
 
+#include <string>
+
 namespace alt {
 
 class lua {
@@ -22,6 +24,8 @@ class lua {
         lua();
         ~lua();
         lua_State *get_state() { return this->L; }
+
+        std::string get_table_string(const char *key);
 
 };
 

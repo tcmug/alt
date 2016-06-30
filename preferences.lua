@@ -1,5 +1,17 @@
 
 
+function pref_string(name, default, kids)
+    return ( { name=name, value=default, type="STRING", kids=kids} )
+end
+
+function pref_boolean(name, default, kids)
+    return ( { name=name, value=default, type="BOOLEAN", kids=kids} )
+end
+
+function pref_number(name, default, kids)
+    return ( { name=name, value=default, type="NUMBER", kids=kids} )
+end
+
 function alt_preferences_get()
 
     pref = {}
@@ -11,19 +23,14 @@ function alt_preferences_get()
     -- pref.syntax = { config = {}, highlighting = {} }
 
     pref.name = "Preferences"
+
     pref.config = {
-        make = "make",
-        gcc = "g++",
-        blah = {
-            testing = "hello"
-        },
-        this = {
-            is = {
-                super = {
-                    tall = "tree"
-                }
-            }
-        }
+        pref_string("Edit me", "name"),
+        pref_number("Just a number", 12),
+        pref_boolean("Boolean", true, {
+            pref_number("Num 1", 11),
+            pref_number("Num 2", 22)
+        }),
     }
 
     -- pref.syntax.highlighting.palette = {
@@ -48,7 +55,6 @@ function alt_preferences_get()
     -- }
 
     return(pref)
-
 end
 
 

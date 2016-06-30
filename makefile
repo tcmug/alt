@@ -1,7 +1,7 @@
 
 # GENERICS
 CC = g++
-COMMON_FLAGS = -mmacosx-version-min=10.7 -arch x86_64
+COMMON_FLAGS = -O3 -mmacosx-version-min=10.7 -arch x86_64
 
 # LUA CONFIG
 LUA_DIR = /Users/tmer/dev/3rd/lua-5.3.3/src
@@ -21,7 +21,7 @@ WX_CFLAGS = `$(WX_CONFIG) --cxxflags --static $(WX_CONFIG_FLAGS)`
 WX_LDFLAGS = `$(WX_CONFIG) --libs --static $(WX_CONFIG_FLAGS)`
 
 # SPECIFICS
-CFLAGS = $(COMMON_FLAGS) -O2 -Wall $(WX_CFLAGS) $(LUA_CFLAGS)
+CFLAGS = $(COMMON_FLAGS) -Wall $(WX_CFLAGS) $(LUA_CFLAGS)
 LDFLAGS = -ffunction-sections -fdata-sections -Wl $(COMMON_FLAGS) -dead_strip $(WX_LDFLAGS) $(LUA_LDFLAGS)
 
 CORE_SRC := $(wildcard src/core/*.cpp)
