@@ -9,7 +9,7 @@ using alt::config_dialog;
 
 
 enum {
-	wxID_SavePreferences,
+	wxID_SavePreferences
 };
 
 
@@ -164,12 +164,23 @@ class tree_item: public wxClientData {
 		TYPE type;
 
 		tree_item(TYPE type, const char *name, const char *value) {
-			this->name = name;
+			this->name  = name;
 			this->value = value;
-			this->type = type;
+			this->type  = type;
 		}
+
 		~tree_item() {
 			printf("Deleted\n");
+		}
+
+		wxTextEntryDialog *click(wxDialog *parent) {
+			if (this->type == STRING) {
+				auto dialog = new wxTextEntryDialog(parent, this->name, this->name, this->value, wxTE_MULTILINE | wxOK | wxCANCEL);
+				auto size = dialog->GetSize();
+				dialog->SetSize(size.GetWidth(), size.GetHeight() * 2);
+				return dialog;
+			}
+			return new wxTextEntryDialog(parent, this->name, this->name, this->value, wxOK | wxCANCEL);
 		}
 
 };
@@ -186,15 +197,22 @@ void config_dialog::loop_config_tree(wxTreeListItem parent) {
 
 			if (lua_isnumber(L, -2)) {
 
+				std::string type_str = this->lua->get_table_string("type");
 				std::string name = this->lua->get_table_string("name");
 				std::string value = this->lua->get_table_string("value");
+
+				tree_item::TYPE type = tree_item::STRING;
+
+				if (type_str != "STRING") {
+					type = tree_item::NUMBER;
+				}
 
 				item = tree->AppendItem(
 					parent,
 					name.c_str(),
 					-1, -1,
 					new tree_item(
-						tree_item::STRING,
+						type,
 						name.c_str(),
 						value.c_str()
 					)
@@ -278,7 +296,6 @@ void config_dialog::loop_config_tree(wxTreeListItem parent) {
 
 void config_dialog::OnSave(wxCommandEvent& WXUNUSED(event)) {
 	lua_State *L = this->lua->get_state();
-
 	lua_getglobal(L, this->set_callback);
 	if (!lua_isfunction(L, -1)) {
 		lua_remove(L, -1);
@@ -288,7 +305,7 @@ void config_dialog::OnSave(wxCommandEvent& WXUNUSED(event)) {
 		return;
 	}
 
-	lua_pushstring(L,"highlighting");
+	lua_pushstring(L, "highlighting");
 	lua_pcall(L, 1, 1, 0);
 	if (lua_isboolean(L, -1) && lua_toboolean(L, -1)) {
 		lua_pop(L, 1);
@@ -312,8 +329,15 @@ void config_dialog::OnSelection(wxTreeListEvent& event)
 	if (ti && ti->type != tree_item::PARENT) {
 		wxString item_name = tree->GetItemText(item, 0) + ":";
 		wxString existing = tree->GetItemText(item, 1);
-		wxString hint = wxGetTextFromUser(item_name, "Edit item", existing, this);
-		tree->SetItemText(item, 1, hint);
+
+		wxString text;
+
+
+		auto dialog = ti->click(this);
+		dialog->ShowModal();
+		text = dialog->GetValue();
+
+		tree->SetItemText(item, 1, text);
 	}
 //    wxLogMessage(msg, DumpItem(event.GetItem()));
 }

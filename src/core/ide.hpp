@@ -4,6 +4,9 @@
 #include "../main.hpp"
 #include "lua.hpp"
 
+#include <string>
+#include <vector>
+
 namespace alt {
 
 class ide: public wxFrame {
@@ -15,10 +18,12 @@ class ide: public wxFrame {
 
     	void OnPreferences(wxCommandEvent&);
   		lua &get_lua() { return this->lua; }
+  		void Draw(wxDC &dc);
 
 	private:
 		// wxWindow *m_left, *m_right;
 
+		std::vector <std::wstring> strings;
 		alt::lua lua;
 		wxTreeListCtrl *tree;
 		wxSizer *sizer;

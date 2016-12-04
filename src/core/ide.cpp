@@ -1,21 +1,28 @@
 
 #include "ide.hpp"
 #include "config_dialog.hpp"
+#include "wx/wx.h"
+#include "wx/sizer.h"
 
+
+#include "editor.hpp"
 
 using alt::ide;
 
 enum {
 	Zero_Menu,
 	Menu_File_ShowDialog,
-	Menu_Blah
+	Menu_Blah,
+    wxID_Blah
 };
+
+
 
 ide::ide():
 	wxFrame(
 		NULL,
 		wxID_ANY,
-		wxT("alt"),
+		wxT("Alt"),
 		wxDefaultPosition,
 		wxSize(420, 300),
 		wxDEFAULT_FRAME_STYLE | wxNO_FULL_REPAINT_ON_RESIZE
@@ -23,8 +30,13 @@ ide::ide():
 {
 	//SetIcon(wxICON(sample));
 	CreateStatusBar(2);
-	SetStatusText(wxT("Everything"), 1);
-	SetStatusText(wxT("Everything"), 0);
+	SetStatusText(wxT("Alt"), 1);
+	SetStatusText(wxT("..."), 0);
+
+    EditView *file = new EditView( (wxFrame*) this );
+
+// new wxTextCtrl(this, wxID_Blah, "Hi!", wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_RICH , wxDefaultValidator, wxTextCtrlNameStr);
+
 
 	// view = new wxDataViewCtrl(
 	//     this,
@@ -39,8 +51,6 @@ ide::ide():
 	//     new wxDataViewColumn( "artist", tr, 1, 150, wxALIGN_LEFT,
 	//     wxDATAVIEW_COL_SORTABLE | wxDATAVIEW_COL_REORDERABLE |
 	//     wxDATAVIEW_COL_RESIZABLE );
-
-
 
     wxMenu *fileMenu = new wxMenu;
     fileMenu->Append(wxID_PREFERENCES);

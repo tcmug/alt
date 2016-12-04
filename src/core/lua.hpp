@@ -9,6 +9,7 @@ extern "C" {
 
 }
 
+#include "luna.hpp"
 #include <string>
 
 namespace alt {

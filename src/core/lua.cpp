@@ -3,6 +3,35 @@
 
 using alt::lua;
 
+
+
+class Foo {
+  public:
+
+    Foo(lua_State *L) {
+      printf("in constructor %s\n", lua_tostring(L, -1));
+    }
+
+    ~Foo() {
+      printf("in destructor\n");
+    }
+
+    int foo(lua_State *L) {
+      printf("in foo\n");
+    }
+
+    static const char className[];
+    static const Luna<Foo>::RegType Register[];
+
+};
+
+const char Foo::className[] = "Foo";
+const Luna<Foo>::RegType Foo::Register[] = {
+  { "foo", &Foo::foo },
+  { 0 }
+};
+
+
 lua::lua() {
 
 	L = luaL_newstate();
@@ -16,6 +45,8 @@ lua::lua() {
 	luaL_requiref(L, "math", luaopen_math, 1);
 	luaL_requiref(L, "table", luaopen_table, 1);
 	luaL_requiref(L, "string", luaopen_string, 1);
+
+	Luna <Foo>::Register(L);
 	// luaopen_base(L);
 	// luaopen_string(L);
 	// luaopen_math(L);
@@ -92,7 +123,6 @@ lua::lua() {
 lua::~lua() {
 	lua_close(L);
 }
-
 
 
 

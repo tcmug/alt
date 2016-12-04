@@ -17,10 +17,10 @@ class alt_ide_app: public wxApp {
 };
 
 
-
 wxIMPLEMENT_APP(alt_ide_app);
 
 bool alt_ide_app::OnInit() {
+
 	if ( !wxApp::OnInit() )
 		return false;
 

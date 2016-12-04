@@ -1,7 +1,7 @@
 
 # GENERICS
 CC = g++
-COMMON_FLAGS = -O3 -mmacosx-version-min=10.7 -arch x86_64
+COMMON_FLAGS = -Wno-c++11-extensions -O3 -mmacosx-version-min=10.7 -arch x86_64
 
 # LUA CONFIG
 LUA_DIR = /Users/tmer/dev/3rd/lua-5.3.3/src
