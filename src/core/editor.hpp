@@ -7,9 +7,28 @@
 #include "wx/wx.h"
 #include "wx/sizer.h"
 
-#include "textedit.hpp"
+#include "text_line.hpp"
+#include "text_caret.hpp"
+#include "text_render_context.hpp"
+
 
 using alt::ide;
+
+
+
+class edit_event {
+
+    public:
+
+        enum TYPE {
+            DELETE,
+            INSERT
+        };
+
+        TYPE type;
+        std::string content;
+        std::vector <text_caret> carets;
+};
 
 
 class EditView : public wxScrolledWindow {
@@ -21,9 +40,14 @@ class EditView : public wxScrolledWindow {
         std::vector <text_line> lines;
         std::vector <text_caret> carets;
 
-        wxSize render(wxDC &dc) const;
+        int font_size;
+        wxFont font;
+
+        wxSize render(wxDC &dc);
         wxPoint lc_to_screen(wxDC &dc, wxPoint &position) const;
         wxPoint screen_to_lc(wxDC &dc, wxPoint &pt) const;
+
+        void insert(std::wstring str);
 
     public:
 

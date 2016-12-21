@@ -1,44 +1,15 @@
 
-#include "textedit.hpp"
+#include "text_line.hpp"
+#include "text_caret.hpp"
+#include "text_render_context.hpp"
 
 #include <algorithm>
-
-text_render_context::text_render_context(wxDC *_dc):
-    dc(_dc),
-    screen(0, 0),
-    max_line_width(0),
-    max_line_height(0),
-    left_padding(20),
-    position(1, 1) {
-}
-
-
-void text_render_context::print(std::wstring content) {
-    wxSize sz = dc->GetTextExtent(content.c_str());
-    dc->DrawText(content.c_str(), screen.x, screen.y);
-    screen.x += sz.GetWidth();
-    position.x += content.length();
-}
-
-
-bool text_line::render_text(text_render_context &tx) const {
-    wxSize sz;
-    if (content == L"") {
-        sz = tx.dc->GetTextExtent(L" ");
-    }
-    else {
-        sz = tx.dc->GetTextExtent(content.c_str());
-    }
-    tx.max_line_height = sz.GetHeight();
-    tx.print(content);
-    tx.max_line_height = std::max(tx.max_line_height, sz.GetHeight());
-    return false;
-}
 
 
 text_line::text_line(std::wstring str):
     content(str),
-    changed(0)
+    changed(0),
+    extents(0, 0)
     {
 }
 
@@ -112,16 +83,20 @@ int text_line::map_point_to_column(text_render_context &tx, int x) const {
 }
 
 
-text_caret::text_caret(wxPoint _position, wxPoint _screen):
-    screen(_screen),
-    position(_position) {
+bool text_line::render_text(text_render_context &tx) const {
+    wxSize sz;
+    if (content == L"") {
+        sz = tx.dc->GetTextExtent(L" ");
+    }
+    else {
+        sz = tx.dc->GetTextExtent(content.c_str());
+    }
+    tx.max_line_height = sz.GetHeight();
+    tx.print(content);
+    tx.max_line_height = std::max(tx.max_line_height, sz.GetHeight());
+    return false;
 }
 
-
-void text_caret::render(text_render_context &tx) const {
-    tx.dc->SetBrush(wxBrush(wxColour(0, 0, 0)));
-    tx.dc->DrawRectangle(screen.x, screen.y, 2, tx.max_line_height);
-}
 
 void text_line::insert(int pos, std::wstring str) {
     content.insert(pos, str);
