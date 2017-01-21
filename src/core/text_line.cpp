@@ -62,6 +62,7 @@ int text_line::map_point_to_column(text_render_context &tx, int x) const {
 
     if (x > tx.screen.x + sz.GetWidth()) {
         // Right side of the end of the line.
+        tx.screen.x = tx.screen.x + sz.GetWidth();
         return content.length() + 1;
     }
     else if (x < tx.screen.x) {
@@ -75,10 +76,14 @@ int text_line::map_point_to_column(text_render_context &tx, int x) const {
         wxSize sz = tx.dc->GetTextExtent(str.c_str());
         temp_x = tx.screen.x + sz.GetWidth();
         if (x <= temp_x) {
+            tx.screen.x = prev_x;
+            tx.char_width = temp_x - prev_x;
             return i;
         }
     }
+
     // Default to length of line.
+    tx.screen.x = temp_x;
     return content.length();
 }
 

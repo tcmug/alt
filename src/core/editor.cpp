@@ -15,13 +15,25 @@ END_EVENT_TABLE()
 
 EditView::EditView(wxFrame* parent) :
     wxScrolledWindow(parent) {
+    SetCursor(wxCursor(wxCURSOR_IBEAM));
+    SetBackgroundColour(*wxWHITE);
 
     lines.push_back(text_line(L"Lorem ipsum."));
     lines.push_back(text_line(L"Sit dolor."));
     lines.push_back(text_line(L"Amet."));
+    lines.push_back(text_line(L""));
+    lines.push_back(text_line(L"Hello world."));
+
+    markers.push_back(text_marker(
+        wxPoint(2, 1),
+        wxPoint(3, 1)
+    ));
+
 
     font_size = 12;
     font = wxFont(font_size, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false);
+
+    //markers.push_back(text_marker(wxPoint(0,0), wxPoint(10,10)));
 }
 
 
@@ -49,6 +61,20 @@ wxSize EditView::render(wxDC &dc) {
         caret.render(tx);
     }
 
+    for (auto &marker : markers) {
+        if (!marker.is_dirty())
+            continue;
+        marker.update(
+            lc_to_trc(marker.get_start()).screen,
+            lc_to_trc(marker.get_end()).screen
+        );
+    }
+
+
+    for (const auto &marker : markers) {
+        marker.render(tx);
+    }
+
     return canvas_size;
 
 }
@@ -60,6 +86,7 @@ void EditView::OnLeftClick( wxMouseEvent& event ) {
 
     if (!event.AltDown()) {
         carets.clear();
+        markers.clear();
     }
 
     wxClientDC dc(this);
@@ -69,12 +96,17 @@ void EditView::OnLeftClick( wxMouseEvent& event ) {
     screen.x += GetScrollPos(wxHORIZONTAL);
     screen.y += GetScrollPos(wxVERTICAL);
 
-    wxPoint position = screen_to_lc(dc, screen);
+    text_render_context tx = pt_to_trc(screen);
 
-    screen = lc_to_screen(dc, position);
-    carets.push_back(text_caret(position, screen, wxSize(2, 10)));
+    tx.report();
 
+    carets.push_back(text_caret(tx.position, tx.screen, wxSize(2, 12)));
     std::sort(carets.begin(), carets.end());
+
+    markers.push_back(text_marker(
+        wxPoint(0, tx.position.y),
+        wxPoint(10000, tx.position.y)
+    ));
 
     Refresh();
 
@@ -82,48 +114,53 @@ void EditView::OnLeftClick( wxMouseEvent& event ) {
 
 
 
-wxPoint EditView::screen_to_lc(wxDC &dc, wxPoint &pt) const {
 
-    dc.SetFont(font);
-    wxPoint lc(1, 1);
+text_render_context EditView::lc_to_trc(wxPoint position) {
+
+    wxClientDC dc(this);
     text_render_context tx(&dc);
+    dc.SetFont(font);
+    tx.position = wxPoint(1, 1);
 
     for (const auto &line : lines) {
-        if ((pt.y < tx.screen.x) || (pt.y > tx.screen.x + font_size)) {
-            lc.y++;
-            tx.screen.x += font_size;
-            continue;
-        }
-        lc.x = line.map_point_to_column(tx, pt.x);
-        pt.y = tx.screen.x;
-        break;
-    }
-    lc.y = std::min((int)lines.size(), lc.y);
-    return lc;
-}
-
-
-
-
-wxPoint EditView::lc_to_screen(wxDC &dc, wxPoint &position) const {
-
-    dc.SetFont(font);
-
-    wxPoint lc(1, 1);
-    text_render_context tx(&dc);
-
-    for (const auto &line : lines) {
-        if (position.y != lc.y) {
-            lc.y++;
+        if (position.y != tx.position.y) {
+            tx.position.y++;
             tx.screen.y += font_size;
             continue;
         }
+        tx.position.x = std::min(line.get_length() + 1, position.x);
         tx.screen.x = line.map_column_to_point(tx, position.x);
         break;
     }
-    return tx.screen;
+
+    return tx;
 }
 
+
+text_render_context EditView::pt_to_trc(wxPoint pt) {
+
+    wxClientDC dc(this);
+    dc.SetFont(font);
+    text_render_context tx(&dc);
+    tx.position.x = -1;
+    for (const auto &line : lines) {
+        if ((pt.y < tx.screen.y) || (pt.y > tx.screen.y + font_size)) {
+            tx.position.y++;
+            tx.screen.y += font_size;
+            continue;
+        }
+        tx.position.x = line.map_point_to_column(tx, pt.x);
+        break;
+    }
+
+    if (tx.position.x == -1) {
+        tx.position.x = (lines.end()-1)->map_point_to_column(tx, 100000);
+        tx.screen.y -= font_size;
+    }
+    tx.position.y = std::min((int)lines.size(), tx.position.y);
+
+    return tx;
+}
 
 
 void EditView::OnChar(wxKeyEvent& event) {
@@ -154,7 +191,7 @@ void EditView::OnChar(wxKeyEvent& event) {
                         lines.erase(lines.begin() + (caret.position.y - 1));
                         caret.position.y--;
                     }
-                    caret.screen = lc_to_screen(dc, caret.position);
+                    caret.screen = lc_to_trc(caret.position).screen;
                 }
             break;
 
@@ -171,7 +208,7 @@ void EditView::OnChar(wxKeyEvent& event) {
                     lines.insert(lines.begin()+caret.position.y, text_line(remainder));
                     caret.position.x = 1;
                     caret.position.y++;
-                    caret.screen = lc_to_screen(dc, caret.position);
+                    caret.screen = lc_to_trc(caret.position).screen;
                 }
             break;
 
@@ -209,7 +246,7 @@ void EditView::OnChar(wxKeyEvent& event) {
                             caret.position.x = 1;
                         }
                     }
-                    caret.screen = lc_to_screen(dc, caret.position);
+                    caret.screen = lc_to_trc(caret.position).screen;
                 }
             break;
 
@@ -227,7 +264,7 @@ void EditView::OnChar(wxKeyEvent& event) {
                             caret.position.x = lines[caret.position.y - 1].get_length() + 1;
                         }
                     }
-                    caret.screen = lc_to_screen(dc, caret.position);
+                    caret.screen = lc_to_trc(caret.position).screen;
                 }
             break;
 
@@ -239,7 +276,7 @@ void EditView::OnChar(wxKeyEvent& event) {
                             caret.position.x = lines[caret.position.y - 1].get_length() + 1;
                         }
                     }
-                    caret.screen = lc_to_screen(dc, caret.position);
+                    caret.screen = lc_to_trc(caret.position).screen;
                 }
             break;
 
@@ -251,7 +288,7 @@ void EditView::OnChar(wxKeyEvent& event) {
                             caret.position.x = lines[caret.position.y - 1].get_length() + 1;
                         }
                     }
-                    caret.screen = lc_to_screen(dc, caret.position);
+                    caret.screen = lc_to_trc(caret.position).screen;
                 }
             break;
 
@@ -273,6 +310,10 @@ void EditView::OnChar(wxKeyEvent& event) {
         }
     }
 
+    for (auto &marker : markers) {
+        marker.mark_dirty();
+    }
+
     Refresh();
 }
 
@@ -286,6 +327,6 @@ void EditView::insert(std::wstring str) {
     for (auto &caret : carets) {
         lines[caret.position.y - 1].insert(caret.position.x - 1, str);
         caret.position.x += str.length();
-        caret.screen = lc_to_screen(dc, caret.position);
+        caret.screen = lc_to_trc(caret.position).screen;
     }
 }

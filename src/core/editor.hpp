@@ -10,7 +10,7 @@
 #include "text_line.hpp"
 #include "text_caret.hpp"
 #include "text_render_context.hpp"
-
+#include "text_marker.hpp"
 
 using alt::ide;
 
@@ -39,13 +39,15 @@ class EditView : public wxScrolledWindow {
 
         std::vector <text_line> lines;
         std::vector <text_caret> carets;
+        std::vector <text_marker> markers;
 
         int font_size;
         wxFont font;
 
         wxSize render(wxDC &dc);
-        wxPoint lc_to_screen(wxDC &dc, wxPoint &position) const;
-        wxPoint screen_to_lc(wxDC &dc, wxPoint &pt) const;
+
+        text_render_context lc_to_trc(wxPoint position);
+        text_render_context pt_to_trc(wxPoint pt);
 
         void insert(std::wstring str);
 

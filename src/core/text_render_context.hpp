@@ -18,6 +18,9 @@ class text_render_context {
         int max_line_width;
         int max_line_height;
         int left_padding;
+        int char_width;
+
+        void report();
 };
 
 
