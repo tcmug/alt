@@ -27,6 +27,9 @@ LDFLAGS = -ffunction-sections -fdata-sections -Wl $(COMMON_FLAGS) -dead_strip $(
 CORE_SRC := $(wildcard src/core/*.cpp)
 CORE_OBJ := $(patsubst src/core/%.cpp,tmp/core_%.o,$(CORE_SRC))
 
+EDITOR_SRC := $(wildcard src/editor/*.cpp)
+EDITOR_OBJ := $(patsubst src/editor/%.cpp,tmp/editor_%.o,$(EDITOR_SRC))
+
 MAIN_SRC := $(wildcard src/*.cpp)
 MAIN_OBJ := $(patsubst src/%.cpp,tmp/main_%.o,$(MAIN_SRC))
 
@@ -34,7 +37,7 @@ all: alt mini
 
 # Link
 
-alt: $(MAIN_OBJ) $(CORE_OBJ)
+alt: $(MAIN_OBJ) $(CORE_OBJ) $(EDITOR_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 # Core stuff
@@ -42,6 +45,9 @@ tmp/main_%.o: src/%.cpp
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 tmp/core_%.o: src/core/%.cpp
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+tmp/editor_%.o: src/editor/%.cpp
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 # Core stuff

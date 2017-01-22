@@ -6,6 +6,7 @@
 #include "text_render_context.hpp"
 
 class text_caret {
+
     public:
 
         text_caret(wxPoint _position, wxPoint _screen, wxSize _extents);
@@ -15,15 +16,9 @@ class text_caret {
         wxPoint position;
         wxSize extents;
 
-        bool operator < (const text_caret& other) const {
-            if (position.y == other.position.y)
-                return (position.x > other.position.x);
-            return (position.y > other.position.y);
-        }
+        bool operator < (const text_caret& other) const;
 
-        void report() {
-            std::cout << position.x << " " << position.y << std::endl;
-        }
+        void report();
 
 };
 

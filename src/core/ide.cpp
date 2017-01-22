@@ -4,8 +4,7 @@
 #include "wx/wx.h"
 #include "wx/sizer.h"
 
-
-#include "editor.hpp"
+#include "../editor/editor.hpp"
 
 using alt::ide;
 

@@ -64,9 +64,13 @@ wxSize EditView::render(wxDC &dc) {
     for (auto &marker : markers) {
         if (!marker.is_dirty())
             continue;
+
+        text_render_context start = lc_to_trc(marker.get_start());
+        text_render_context end = lc_to_trc(marker.get_end());
+        wxPoint lower_right(end.screen.x, end.screen.y + end.max_line_height);
         marker.update(
-            lc_to_trc(marker.get_start()).screen,
-            lc_to_trc(marker.get_end()).screen
+            start.screen,
+            lower_right
         );
     }
 
@@ -201,15 +205,11 @@ void EditView::OnChar(wxKeyEvent& event) {
             }
             break;
 
-            case 13:
+            case 13: {
                 // Return.
-                for (auto &caret : carets) {
-                    std::wstring remainder = lines[caret.position.y - 1].cut(caret.position.x - 1);
-                    lines.insert(lines.begin()+caret.position.y, text_line(remainder));
-                    caret.position.x = 1;
-                    caret.position.y++;
-                    caret.screen = lc_to_trc(caret.position).screen;
-                }
+                std::wstring str(1, uc);
+                insert(str);
+            }
             break;
 
             default:
@@ -318,12 +318,21 @@ void EditView::OnChar(wxKeyEvent& event) {
 }
 
 
+template <typename T>
+std::vector <T> split_string(T string, T delim) {
+    std::vector <T> result;
+    size_t from = 0, to = 0;
+    while (T::npos != (to = string.find(delim, from))) {
+        result.push_back(string.substr(from, to - from));
+        from = to + delim.length();
+    }
+    result.push_back(string.substr(from, to));
+    return result;
+}
+
 
 void EditView::insert(std::wstring str) {
-    wxClientDC dc(this);
-    dc.SetFont(font);
-    wxPoint lc(1, 1);
-    text_render_context tx(&dc);
+    std::vector <T> lines = split_string<std::wstring>(str, L"\n");
     for (auto &caret : carets) {
         lines[caret.position.y - 1].insert(caret.position.x - 1, str);
         caret.position.x += str.length();

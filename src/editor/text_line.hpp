@@ -6,8 +6,13 @@
 class text_caret;
 
 #include "text_render_context.hpp"
+#include "dirtyable.hpp"
+#include "readwriteable.hpp"
 
-class text_line {
+class text_line:
+    public dirtyable,
+    public readwriteable {
+
     private:
 
         bool render_text(text_render_context &tx) const;

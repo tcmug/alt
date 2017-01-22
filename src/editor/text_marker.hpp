@@ -2,10 +2,11 @@
 #define TEXT_MARKER_HPP
 
 #include "wx/wx.h"
+#include "dirtyable.hpp"
 
 #include "text_render_context.hpp"
 
-class text_marker {
+class text_marker: public dirtyable {
 
     private:
 
@@ -14,14 +15,11 @@ class text_marker {
 
         wxPoint screen;
         wxSize extents;
-        bool dirty;
 
     public:
 
         text_marker(wxPoint _start, wxPoint _end);
 
-        void mark_dirty();
-        bool is_dirty();
 
         wxPoint get_start() const { return start; }
         wxPoint get_end() const { return end; }

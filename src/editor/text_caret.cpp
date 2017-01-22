@@ -20,3 +20,13 @@ void text_caret::render(text_render_context &tx) const {
     );
 }
 
+
+bool text_caret::operator < (const text_caret& other) const {
+    if (position.y == other.position.y)
+        return (position.x > other.position.x);
+    return (position.y > other.position.y);
+}
+
+void text_caret::report() {
+    std::cout << position.x << " " << position.y << std::endl;
+}

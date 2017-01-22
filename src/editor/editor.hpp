@@ -1,9 +1,8 @@
-#ifndef EDITOR
-#define EDITOR
+#ifndef EDITOR_HPP
+#define EDITOR_HPP
 
 
-#include "ide.hpp"
-#include "config_dialog.hpp"
+#include "../core/ide.hpp"
 #include "wx/wx.h"
 #include "wx/sizer.h"
 
@@ -13,7 +12,6 @@
 #include "text_marker.hpp"
 
 using alt::ide;
-
 
 
 class edit_event {
@@ -49,7 +47,12 @@ class EditView : public wxScrolledWindow {
         text_render_context lc_to_trc(wxPoint position);
         text_render_context pt_to_trc(wxPoint pt);
 
+        /**
+         * Insert text to carets positions
+         * @param str String to insert
+         */
         void insert(std::wstring str);
+        void erase();
 
     public:
 
