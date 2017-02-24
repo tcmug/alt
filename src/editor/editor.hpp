@@ -10,6 +10,7 @@
 #include "text_caret.hpp"
 #include "text_render_context.hpp"
 #include "text_marker.hpp"
+#include "dirtyable.hpp"
 
 using alt::ide;
 
@@ -29,7 +30,7 @@ class edit_event {
 };
 
 
-class EditView : public wxScrolledWindow {
+class EditView : public wxScrolledWindow, public dirtyable {
 
     protected:
 
@@ -53,6 +54,11 @@ class EditView : public wxScrolledWindow {
          */
         void insert(std::wstring str);
         void erase();
+
+        void insert_new_line();
+        void insert_str(std::wstring str);
+
+        void fix_carets();
 
     public:
 

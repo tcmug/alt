@@ -4,8 +4,10 @@
 #include "wx/wx.h"
 
 #include "text_render_context.hpp"
+#include "dirtyable.hpp"
 
-class text_caret {
+class text_caret:
+    public dirtyable {
 
     public:
 
@@ -17,8 +19,10 @@ class text_caret {
         wxSize extents;
 
         bool operator < (const text_caret& other) const;
+        bool operator == (const text_caret& other) const;
 
         void report();
+        void update();
 
 };
 

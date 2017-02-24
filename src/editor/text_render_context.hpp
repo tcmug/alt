@@ -9,6 +9,7 @@ class text_render_context {
 
         text_render_context(wxDC *_dc);
         void print(std::wstring content);
+        wxSize get_extents(std::wstring content);
 
         wxDC *dc;
 
@@ -19,6 +20,7 @@ class text_render_context {
         int max_line_height;
         int left_padding;
         int char_width;
+        int line_padding;
 
         void report();
 };

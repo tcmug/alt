@@ -21,11 +21,20 @@ void text_caret::render(text_render_context &tx) const {
 }
 
 
+void text_caret::update() {
+    mark_clean();
+}
+
 bool text_caret::operator < (const text_caret& other) const {
     if (position.y == other.position.y)
-        return (position.x > other.position.x);
-    return (position.y > other.position.y);
+        return (position.x < other.position.x);
+    return (position.y < other.position.y);
 }
+
+bool text_caret::operator == (const text_caret& other) const {
+    return (position.y == other.position.y && position.x == other.position.x);
+}
+
 
 void text_caret::report() {
     std::cout << position.x << " " << position.y << std::endl;

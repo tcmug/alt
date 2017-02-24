@@ -29,6 +29,7 @@ class text_line:
         int map_point_to_column(text_render_context &dc, int x) const;
         int map_column_to_point(text_render_context &dc, int x) const;
 
+        void update(text_render_context &tx);
         void render(text_render_context &tx) const;
         int get_length() const;
 
@@ -36,6 +37,8 @@ class text_line:
 
         void insert(int pos, std::wstring str);
         void erase(int pos);
+
+        int get_line_height() const;
 };
 
 
