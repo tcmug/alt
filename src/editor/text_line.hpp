@@ -20,6 +20,7 @@ class text_line:
 
         int changed;
         std::wstring content;
+        wxPoint screen;
         wxSize extents;
 
     public:

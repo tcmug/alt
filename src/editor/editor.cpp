@@ -8,7 +8,8 @@ using alt::ide;
 
 
 BEGIN_EVENT_TABLE(EditView, wxPanel)
-    EVT_LEFT_DOWN( EditView::OnLeftClick )
+    EVT_LEFT_DOWN( EditView::OnLeftDown )
+    EVT_LEFT_UP( EditView::OnLeftUp )
     EVT_CHAR( EditView::OnChar )
 END_EVENT_TABLE()
 
@@ -30,52 +31,91 @@ EditView::EditView(wxFrame* parent) :
         wxPoint(3, 1)
     ));
 
-    font_size = 12;
+    scale = 2;//GetContentScaleFactor();
+
+    buffer = NULL;
+    font_size = 10;
     font = wxFont(font_size, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false);
 
 }
 
 
 void EditView::OnDraw(wxDC &dc) {
-    wxSize sz = render(dc);
     int x = GetScrollPos(wxHORIZONTAL);
     int y = GetScrollPos(wxVERTICAL);
+    wxSize sz = render(dc);
     SetScrollbars(1, 1, sz.GetWidth(), sz.GetHeight(), x, y);
 }
 
 
 wxSize EditView::render(wxDC &dc) {
 
-    // wxFONTFAMILY_TELETYPE
-    dc.SetFont(font);
+    redraw(dc);
 
+    /*
+    wxMemoryDC dc;
+    dc.SelectObjectAsSource(*buffer);
+    _dc.StretchBlit(
+        0, 0,
+        buffer->GetWidth(), buffer->GetHeight(),
+        &dc,
+        0, 0,
+        buffer->GetWidth() * scale, buffer->GetHeight() * scale
+    );*/
+
+    return canvas_size;
+}
+
+
+void EditView::redraw(wxDC &dc) {
+
+    wxSize client_size = dc.GetSize();
+    /*
+
+    const float block_size = 128;
+    int block_width = ceil(client_size.GetWidth() / block_size) * block_size;
+    int block_height = ceil(client_size.GetHeight() / block_size) * block_size;
+
+    if (buffer == NULL) {
+        buffer = new wxBitmap(block_width * scale, block_height * scale, 4);
+    }
+
+    if (client_size.GetWidth() * scale >= buffer->GetWidth() ||
+        client_size.GetHeight() * scale >= buffer->GetHeight()) {
+        delete buffer;
+        buffer = new wxBitmap(block_width * scale, block_height * scale, 8);
+        std::cout << "enlarged to " << buffer->GetWidth() << " " << buffer->GetHeight() << std::endl;
+    }
+    */
+
+    //wxMemoryDC dc;
+    //dc.SelectObject(*buffer);
+    dc.Clear();
+    dc.SetFont(font);
+    // dc.SetUserScale(scale, scale);
     text_render_context tx(&dc);
 
+    tx.offset_y = GetScrollPos(wxVERTICAL);
+    tx.lower_y = tx.offset_y + client_size.GetHeight();
+
+    // Update and render lines.
     for (auto &line : lines) {
-        if (!line.is_dirty() && !is_dirty())
+        if (!is_dirty() && !line.is_dirty())
             continue;
         line.update(tx);
     }
 
-    for (const auto &line : lines) {
-        line.render(tx);
-    }
-
-    canvas_size = wxSize(tx.max_line_width, tx.screen.y);
-
+    // Update and render carets.
     for (auto &caret : carets) {
-        if (!caret.is_dirty() && !is_dirty())
+        if (!is_dirty() && !caret.is_dirty())
             continue;
         caret.screen = lc_to_trc(caret.position).screen;
         caret.update();
     }
 
-    for (const auto &caret : carets) {
-        caret.render(tx);
-    }
-
+    // Update and render markers.
     for (auto &marker : markers) {
-        if (!marker.is_dirty() && !is_dirty())
+        if (!is_dirty() && !marker.is_dirty())
             continue;
 
         text_render_context start = lc_to_trc(marker.get_start());
@@ -87,9 +127,27 @@ wxSize EditView::render(wxDC &dc) {
         );
     }
 
+    tx.reset();
+
+    // Handle rendering.
+
+    for (const auto &line : lines) {
+        line.render(tx);
+        // if (tx.screen.y > tx.lower_y)
+        //     break;
+    }
+
+    for (const auto &caret : carets) {
+        caret.render(tx);
+    }
+
     for (const auto &marker : markers) {
         marker.render(tx);
     }
+
+    canvas_size = wxSize(tx.max_line_width, tx.screen.y);
+
+    // Draw gutter.
 
     tx.dc->SetBrush(*wxTRANSPARENT_BRUSH);
     tx.dc->DrawRoundedRectangle(
@@ -100,7 +158,8 @@ wxSize EditView::render(wxDC &dc) {
 
     mark_clean();
 
-    return canvas_size;
+
+
 }
 
 
@@ -125,7 +184,7 @@ void EditView::fix_carets() {
 }
 
 
-void EditView::OnLeftClick( wxMouseEvent& event ) {
+void EditView::OnLeftDown( wxMouseEvent& event ) {
 
     if (!event.AltDown()) {
         carets.clear();
@@ -144,10 +203,34 @@ void EditView::OnLeftClick( wxMouseEvent& event ) {
     carets.push_back(text_caret(tx.position, tx.screen, wxSize(2, std::max(font_size, tx.max_line_height))));
 
     fix_carets();
-    // tx.report();
 
     Refresh();
 }
+
+
+void EditView::OnLeftUp( wxMouseEvent& event ) {
+
+    wxClientDC dc(this);
+
+    wxPoint screen = event.GetLogicalPosition(dc);
+
+    screen.x += GetScrollPos(wxHORIZONTAL);
+    screen.y += GetScrollPos(wxVERTICAL);
+
+    text_render_context tx = pt_to_trc(screen);
+
+    //carets.push_back(text_caret(tx.position, tx.screen, wxSize(2, std::max(font_size, tx.max_line_height))));
+
+    markers.push_back(text_marker(
+        tx.position,
+        wxPoint(100, tx.position.y)
+    ));
+
+    fix_carets();
+
+    Refresh();
+}
+
 
 
 
@@ -236,6 +319,7 @@ void EditView::OnChar(wxKeyEvent& event) {
                     switch (uc) {
                         case 45:
                             font_size = std::max(font_size - 1, 3);
+                            //scale = std::max(scale - 1, 3);
                             font = wxFont(font_size, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false);
                             mark_dirty();
                         break;
@@ -348,6 +432,8 @@ void EditView::OnChar(wxKeyEvent& event) {
 
     fix_carets();
     Refresh();
+
+
 }
 
 

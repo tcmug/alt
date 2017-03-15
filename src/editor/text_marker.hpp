@@ -20,7 +20,6 @@ class text_marker: public dirtyable {
 
         text_marker(wxPoint _start, wxPoint _end);
 
-
         wxPoint get_start() const { return start; }
         wxPoint get_end() const { return end; }
 

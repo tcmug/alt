@@ -1,7 +1,7 @@
 
 # GENERICS
 CC = g++
-COMMON_FLAGS = -Wno-c++11-extensions -O2 -mmacosx-version-min=10.7 -arch x86_64
+COMMON_FLAGS = -Wno-c++11-extensions -O3 -mmacosx-version-min=10.7 -arch x86_64
 
 # LUA CONFIG
 LUA_DIR = /Users/tmer/dev/3rd/lua-5.3.3/src
@@ -30,6 +30,9 @@ CORE_OBJ := $(patsubst src/core/%.cpp,tmp/core_%.o,$(CORE_SRC))
 EDITOR_SRC := $(wildcard src/editor/*.cpp)
 EDITOR_OBJ := $(patsubst src/editor/%.cpp,tmp/editor_%.o,$(EDITOR_SRC))
 
+MISC_SRC := $(wildcard src/misc/*.cpp)
+MISC_OBJ := $(patsubst src/misc/%.cpp,tmp/misc_%.o,$(MISC_SRC))
+
 MAIN_SRC := $(wildcard src/*.cpp)
 MAIN_OBJ := $(patsubst src/%.cpp,tmp/main_%.o,$(MAIN_SRC))
 
@@ -37,7 +40,7 @@ all: alt mini
 
 # Link
 
-alt: $(MAIN_OBJ) $(CORE_OBJ) $(EDITOR_OBJ)
+alt: $(MAIN_OBJ) $(CORE_OBJ) $(EDITOR_OBJ) $(MISC_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 # Core stuff
@@ -50,9 +53,17 @@ tmp/core_%.o: src/core/%.cpp
 tmp/editor_%.o: src/editor/%.cpp
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+tmp/misc_%.o: src/misc/%.cpp
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 # Core stuff
+
 clean:
 	rm -f alt docs/* tmp/*
 
 mini:
 	strip alt ; SetFile -t APPL alt
+
+test: $(MISC_OBJ)
+	$(CC) test.cpp $(LDFLAGS) -o $@ $^
+

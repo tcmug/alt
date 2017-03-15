@@ -20,8 +20,11 @@ void text_line::render(text_render_context &tx) const {
     tx.position.x = 1;
     tx.screen.x = tx.left_padding;
 
-    render_text(tx);
-    tx.max_line_width = std::max(tx.max_line_width, tx.screen.x);
+    if (tx.screen.y + extents.GetHeight() > tx.offset_y &&
+        tx.screen.y < tx.lower_y) {
+        render_text(tx);
+        tx.max_line_width = std::max(tx.max_line_width, tx.screen.x);
+    }
 
     tx.position.y++;
     tx.screen.y += extents.GetHeight();
@@ -80,7 +83,6 @@ int text_line::map_point_to_column(text_render_context &tx, int x) const {
         int width = (temp_x - prev_x) * 0.5;
         if (x <= temp_x - width) {
             tx.screen.x = prev_x;
-            tx.char_width = temp_x - prev_x;
             return i;
         }
     }
@@ -90,14 +92,23 @@ int text_line::map_point_to_column(text_render_context &tx, int x) const {
     return content.length();
 }
 
+
 void text_line::update(text_render_context &tx) {
+
     if (content == L"") {
         extents = tx.get_extents(L" ");
     }
     else {
         extents = tx.get_extents(content.c_str());
     }
+
     extents.SetHeight(extents.GetHeight() * 1.5);
+
+    screen.x = tx.left_padding;
+    screen.y = tx.screen.y;
+
+    tx.screen.y += extents.GetHeight();
+
     mark_clean();
 }
 

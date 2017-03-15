@@ -41,7 +41,10 @@ class EditView : public wxScrolledWindow, public dirtyable {
         std::vector <text_marker> markers;
 
         int font_size;
+        float scale;
+
         wxFont font;
+        wxBitmap *buffer;
 
         wxSize render(wxDC &dc);
 
@@ -60,13 +63,16 @@ class EditView : public wxScrolledWindow, public dirtyable {
 
         void fix_carets();
 
+        void redraw(wxDC &dc);
+
     public:
 
         EditView(wxFrame* parent);
 
         void OnChar(wxKeyEvent& event);
         void OnDraw(wxDC &dc);
-        void OnLeftClick(wxMouseEvent &event);
+        void OnLeftDown(wxMouseEvent &event);
+        void OnLeftUp(wxMouseEvent &event);
 
         DECLARE_EVENT_TABLE()
 

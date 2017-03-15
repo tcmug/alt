@@ -1,30 +1,30 @@
 {
   config = {
     1 = {
-      value = "MULTILINE\nstring\"With quotes",
       type = "STRING",
+      value = "MULTILINE\nstring\"With quotes",
       name = "Edit me"
     },
     2 = {
-      value = 12,
       type = "NUMBER",
+      value = 12,
       name = "Just a number"
     },
     3 = {
+      type = "BOOLEAN",
       value = true,
       kids = {
         1 = {
-          value = 11,
           type = "NUMBER",
+          value = 11,
           name = "Num 1"
         },
         2 = {
-          value = 22,
           type = "NUMBER",
+          value = 22,
           name = "Num 2"
         }
       },
-      type = "BOOLEAN",
       name = "Boolean"
     }
   },
