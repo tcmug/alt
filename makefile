@@ -4,12 +4,13 @@ CC = g++
 COMMON_FLAGS = -Wno-c++11-extensions -O3 -mmacosx-version-min=10.7 -arch x86_64
 
 # LUA CONFIG
-LUA_DIR = /Users/tmer/dev/3rd/lua-5.3.3/src
-LUA_LDFLAGS = -L$(LUA_DIR) -llua
-LUA_CFLAGS = -I$(LUA_DIR)
+HEADERS_DIR = /Users/tmer/dev/alt/3rd/include
+LIBS_DIR = /Users/tmer/dev/alt/3rd/lib
+LUA_LDFLAGS = -llua
+LUA_CFLAGS =
 
 # WX CONFIG
-WX_CONFIG = /Users/tmer/dev/3rd/wxWidgets-3.1.0/build-release/wx-config
+WX_CONFIG ?= ./3rd/bin/wx-config
 WX_PORT ?= $(shell $(WX_CONFIG) --query-toolkit)
 WX_VERSION ?= $(shell $(WX_CONFIG) --query-version | sed -e 's/\([0-9]*\)\.\([0-9]*\)/\1\2/')
 WX_VERSION_MAJOR = $(shell echo $(WX_VERSION) | cut -c1,1)
@@ -21,8 +22,8 @@ WX_CFLAGS = `$(WX_CONFIG) --cxxflags --static $(WX_CONFIG_FLAGS)`
 WX_LDFLAGS = `$(WX_CONFIG) --libs --static $(WX_CONFIG_FLAGS)`
 
 # SPECIFICS
-CFLAGS = $(COMMON_FLAGS) -Wall $(WX_CFLAGS) $(LUA_CFLAGS)
-LDFLAGS = -ffunction-sections -fdata-sections -Wl $(COMMON_FLAGS) -dead_strip $(WX_LDFLAGS) $(LUA_LDFLAGS)
+CFLAGS =  -I$(HEADERS_DIR) $(COMMON_FLAGS) -Wall $(WX_CFLAGS) $(LUA_CFLAGS)
+LDFLAGS = -L$(LIBS_DIR) -ffunction-sections -fdata-sections -Wl $(COMMON_FLAGS) -dead_strip $(WX_LDFLAGS) $(LUA_LDFLAGS)
 
 CORE_SRC := $(wildcard src/core/*.cpp)
 CORE_OBJ := $(patsubst src/core/%.cpp,tmp/core_%.o,$(CORE_SRC))
@@ -36,7 +37,7 @@ MISC_OBJ := $(patsubst src/misc/%.cpp,tmp/misc_%.o,$(MISC_SRC))
 MAIN_SRC := $(wildcard src/*.cpp)
 MAIN_OBJ := $(patsubst src/%.cpp,tmp/main_%.o,$(MAIN_SRC))
 
-all: alt mini
+all: mini
 
 # Link
 
@@ -61,8 +62,11 @@ tmp/misc_%.o: src/misc/%.cpp
 clean:
 	rm -f alt docs/* tmp/*
 
-mini:
+mini: alt
 	strip alt ; SetFile -t APPL alt
+
+dist: mini
+	upx alt
 
 test: $(MISC_OBJ)
 	$(CC) test.cpp $(LDFLAGS) -o $@ $^

@@ -1,0 +1,26 @@
+
+
+dependencies:
+
+  wxwidgets:
+    git:
+      url: "https://github.com/wxWidgets/wxWidgets.git"
+      checkout: 4dad618
+    make:
+      dir: build-release
+      configure: ../configure --disable-shared --prefix=/Users/tmer/dev/alt/3rd --exec-prefix=/Users/tmer/dev/alt/3rd
+      commands:
+        - make -j 4
+        - make install
+
+  lua:
+    download:
+      url: "https://www.lua.org/ftp/lua-5.3.4.tar.gz"
+      command: "tar xvfz lua-5.3.4.tar.gz && mv lua-5.3.4 lua"
+    make:
+      commands:
+        - make -j 6 macosx INSTALL_TOP=/Users/tmer/dev/alt/3rd
+        - make install INSTALL_TOP=/Users/tmer/dev/alt/3rd
+target:
+  commands:
+      - make -j 4
