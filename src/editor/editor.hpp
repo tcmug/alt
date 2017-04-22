@@ -11,6 +11,7 @@
 #include "text_render_context.hpp"
 #include "text_marker.hpp"
 #include "dirtyable.hpp"
+#include "state.hpp"
 
 using alt::ide;
 
@@ -30,6 +31,9 @@ class edit_event {
 };
 
 
+typedef state_stack <wchar_t> state_stack_editor;
+
+
 class EditView : public wxScrolledWindow, public dirtyable {
 
     protected:
@@ -39,6 +43,8 @@ class EditView : public wxScrolledWindow, public dirtyable {
         std::vector <text_line> lines;
         std::vector <text_caret> carets;
         std::vector <text_marker> markers;
+
+        state_stack<wchar_t> *sstack;
 
         int font_size;
         float scale;

@@ -17,38 +17,46 @@ END_EVENT_TABLE()
 EditView::EditView(wxFrame* parent) :
     wxScrolledWindow(parent) {
     SetCursor(wxCursor(wxCURSOR_IBEAM));
-    SetBackgroundColour(*wxWHITE);
-    SetForegroundColour(*wxWHITE);
+    SetBackgroundColour(wxColour(100, 100, 100));
+    SetForegroundColour(wxColour(100, 100, 100));
 
-    lines.push_back(text_line(L"Lorem ipsum."));
-    lines.push_back(text_line(L"Sit dolor."));
-    lines.push_back(text_line(L"Amet."));
-    lines.push_back(text_line(L""));
-    lines.push_back(text_line(L"Hello world."));
+    lines.push_back(text_line(L"<html>"));
+    lines.push_back(text_line(L"<body>"));
+    lines.push_back(text_line(L"<a href=\"/\">Go</a>"));
+    lines.push_back(text_line(L"this->that->there"));
+    lines.push_back(text_line(L"</body>"));
+    lines.push_back(text_line(L"</html>"));
 
     markers.push_back(text_marker(
         wxPoint(2, 1),
         wxPoint(3, 1)
     ));
 
-    scale = 2;//GetContentScaleFactor();
-
+    scale = 1;
     buffer = NULL;
-    font_size = 10;
-    font = wxFont(font_size, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false);
+
+    font_size = 12;
+
+    sstack = new state_stack<wchar_t>(new root_state());
+
+    font = wxFont("0;12;76;90;90;0;Roboto Mono;49");
+    // font = wxFont("0;13;76;90;90;0;Glass TTY VT220;49");
+    // font_size, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Roboto");
 
 }
 
 
 void EditView::OnDraw(wxDC &dc) {
-    int x = GetScrollPos(wxHORIZONTAL);
-    int y = GetScrollPos(wxVERTICAL);
+    int x = GetScrollPos(wxHORIZONTAL) / scale;
+    int y = GetScrollPos(wxVERTICAL) / scale;
     wxSize sz = render(dc);
     SetScrollbars(1, 1, sz.GetWidth(), sz.GetHeight(), x, y);
 }
 
 
 wxSize EditView::render(wxDC &dc) {
+
+    sstack->reset();
 
     redraw(dc);
 
@@ -90,9 +98,10 @@ void EditView::redraw(wxDC &dc) {
 
     //wxMemoryDC dc;
     //dc.SelectObject(*buffer);
+
     dc.Clear();
     dc.SetFont(font);
-    // dc.SetUserScale(scale, scale);
+    dc.SetUserScale(scale, scale);
     text_render_context tx(&dc);
 
     tx.offset_y = GetScrollPos(wxVERTICAL);
@@ -158,8 +167,6 @@ void EditView::redraw(wxDC &dc) {
 
     mark_clean();
 
-
-
 }
 
 
@@ -195,8 +202,11 @@ void EditView::OnLeftDown( wxMouseEvent& event ) {
 
     wxPoint screen = event.GetLogicalPosition(dc);
 
-    screen.x += GetScrollPos(wxHORIZONTAL);
-    screen.y += GetScrollPos(wxVERTICAL);
+    screen.x /= scale;
+    screen.y /= scale;
+
+    screen.x += GetScrollPos(wxHORIZONTAL) / scale;
+    screen.y += GetScrollPos(wxVERTICAL) / scale;
 
     text_render_context tx = pt_to_trc(screen);
 
@@ -214,17 +224,21 @@ void EditView::OnLeftUp( wxMouseEvent& event ) {
 
     wxPoint screen = event.GetLogicalPosition(dc);
 
-    screen.x += GetScrollPos(wxHORIZONTAL);
-    screen.y += GetScrollPos(wxVERTICAL);
+    screen.x /= scale;
+    screen.y /= scale;
+
+
+    screen.x += GetScrollPos(wxHORIZONTAL) / scale;
+    screen.y += GetScrollPos(wxVERTICAL) / scale;
 
     text_render_context tx = pt_to_trc(screen);
 
     //carets.push_back(text_caret(tx.position, tx.screen, wxSize(2, std::max(font_size, tx.max_line_height))));
 
-    markers.push_back(text_marker(
-        tx.position,
-        wxPoint(100, tx.position.y)
-    ));
+    // markers.push_back(text_marker(
+    //     tx.position,
+    //     wxPoint(100, tx.position.y)
+    // ));
 
     fix_carets();
 
@@ -318,13 +332,14 @@ void EditView::OnChar(wxKeyEvent& event) {
                 if (event.ControlDown()) {
                     switch (uc) {
                         case 45:
+                            //scale = std::max(scale - 0.1, 0.1);
                             font_size = std::max(font_size - 1, 3);
-                            //scale = std::max(scale - 1, 3);
                             font = wxFont(font_size, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false);
                             mark_dirty();
                         break;
                         case 43:
-                            font_size++;
+                            //scale = scale + 0.1;
+                            font_size = font_size + 1;
                             font = wxFont(font_size, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false);
                             mark_dirty();
                         break;

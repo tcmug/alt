@@ -8,7 +8,6 @@
 
 text_line::text_line(std::wstring str):
     content(str),
-    changed(0),
     extents(0, 0)
     {
 }
@@ -20,11 +19,9 @@ void text_line::render(text_render_context &tx) const {
     tx.position.x = 1;
     tx.screen.x = tx.left_padding;
 
-    if (tx.screen.y + extents.GetHeight() > tx.offset_y &&
-        tx.screen.y < tx.lower_y) {
-        render_text(tx);
-        tx.max_line_width = std::max(tx.max_line_width, tx.screen.x);
-    }
+    tx.max_line_height = extents.GetHeight();
+    tx.print(content);
+    tx.max_line_width = std::max(tx.max_line_width, tx.screen.x);
 
     tx.position.y++;
     tx.screen.y += extents.GetHeight();
@@ -102,7 +99,7 @@ void text_line::update(text_render_context &tx) {
         extents = tx.get_extents(content.c_str());
     }
 
-    extents.SetHeight(extents.GetHeight() * 1.5);
+    //extents.SetHeight(extents.GetHeight());
 
     screen.x = tx.left_padding;
     screen.y = tx.screen.y;
@@ -110,14 +107,6 @@ void text_line::update(text_render_context &tx) {
     tx.screen.y += extents.GetHeight();
 
     mark_clean();
-}
-
-
-bool text_line::render_text(text_render_context &tx) const {
-    tx.max_line_height = extents.GetHeight();
-    tx.print(content);
-    tx.max_line_height = std::max(tx.max_line_height, extents.GetHeight());
-    return false;
 }
 
 

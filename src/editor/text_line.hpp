@@ -9,16 +9,15 @@ class text_caret;
 #include "dirtyable.hpp"
 #include "readwriteable.hpp"
 
+
 class text_line:
     public dirtyable,
     public readwriteable {
 
     private:
 
-        bool render_text(text_render_context &tx) const;
         void update_specs();
 
-        int changed;
         std::wstring content;
         wxPoint screen;
         wxSize extents;
