@@ -11,7 +11,7 @@ class alt_ide_app: public wxApp {
 
 	private:
 
-		virtual bool OnInit() wxOVERRIDE;
+		virtual bool OnInit(); //wxOVERRIDE;
 		wxDECLARE_NO_COPY_CLASS(alt_ide_app);
 
 };
@@ -19,12 +19,11 @@ class alt_ide_app: public wxApp {
 
 wxIMPLEMENT_APP(alt_ide_app);
 
-#include "misc/dictionary.hpp"
 
 /*
 
 
-#include "misc/state.hpp"
+c#include "misc/state.hpp"
 
 class root_state: public state <char> {
 
@@ -134,8 +133,65 @@ void quote::handle_input(state_stack_type *s, char c) {
 }
 */
 
+#include <wx/regex.h>
+#include <string>
+#include <map>
+
+#include "misc/regtionary.hpp"
+
+
 
 bool alt_ide_app::OnInit() {
+
+	regtionary <std::wstring> dic;
+
+
+	auto tag = dic.insert(L"\\<\\/?\\w+", L"TAG-ENTER", regtionary<std::wstring>::ENTER);
+	tag->insert(L"\\\"[^\\\"]*\\\"", L"DQ-STRING");
+	tag->insert(L"\\'[^\\']*\\'", L"SQ-STRING");
+	tag->insert(L"([a-z]+)(?=\\W*\\=)", L"ATTR");
+	tag->insert(L"\\>", L"TAG-EXIT", regtionary<std::wstring>::DROP);
+
+	auto entry = dic.insert(L"\\<\\?(php)?", L"PHP-ENTER", regtionary<std::wstring>::ENTER);
+	entry->insert(L"\\?\\>", L"PHP-EXIT", regtionary<std::wstring>::DROP);
+	entry->insert(L"\\$[A-Za-z0-9_]+", L"VAR");
+
+	dic.print();
+
+	std::cout << "***" << std::endl;
+
+	const wchar_t *code = L"<tag><another><third><?php if ($then) { $name=123; $Blah_x =4; } ?><html yes single='single' other= \"hop\" id =\"t<>his\"><? if ($var) ?></html>";
+	std::wstring result;
+
+	for (int i = 0; i < 1; i++) {
+		regtionary <std::wstring>::result res = dic.scan(code);
+
+		while (res.next()) {
+			std::wstring ln(res.at);
+			if (res.start > 0) {
+				result += ln.substr(0, res.start);
+				result += L"|";
+			}
+			if (res.snip.length() > 0) {
+				result += res.snip;
+				result += L"||";
+			}
+		}
+
+	}
+	//if (result == code) {
+	std::wcout << code << std::endl;
+	std::wcout << result << std::endl;
+	//}
+	return 0;
+	// std::cout << dic.find(L"->") << std::endl;
+	// std::cout << dic.find(L"-") << std::endl;
+	// std::cout << dic.find(L"x") << std::endl;
+	// std::cout << dic.find(L"$asdasd22-") << std::endl;
+
+	// std::cout << dic.find(L"Hello world") << std::endl;
+	// std::cout << dic.find(L"Hello book") << std::endl;
+	// std::cout << dic.find(L"Hello") << std::endl;
 
 	// root_state *st = new root_state();
 	// state_stack <char> stack(st);
