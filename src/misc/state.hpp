@@ -40,12 +40,14 @@ class state_stack {
     private:
 
         std::stack <state_item*> stack_items;
+        state_item *root;
         bool modified;
 
     public:
 
-        state_stack(state_item *root) {
-            stack_items.push(root);
+        state_stack(state_item *_root) {
+            stack_items.push(_root);
+            root = _root;
             modified = false;
         }
 
@@ -53,6 +55,14 @@ class state_stack {
             item->enter(this);
             stack_items.push(item);
             modified = true;
+        }
+
+        void reset() {
+            while (!stack_items.empty()) {
+                stack_items.pop();
+            }
+            stack_items.push(root);
+            modified = false;
         }
 
         state_item *pop() {

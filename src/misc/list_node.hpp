@@ -39,11 +39,11 @@ class list_node {
         }
 
         list_node *begin() {
-            return next;
+            return this;
         }
 
         list_node *end() {
-            return this;
+            return this->prev;
         }
 
     private:
@@ -51,6 +51,7 @@ class list_node {
         T owner;
         list_node *next;
         list_node *prev;
+
 };
 
 #endif

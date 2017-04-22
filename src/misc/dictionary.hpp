@@ -1,190 +1,136 @@
-#ifndef DICTIONARY_H
-#define DICTIONARY_H
 
-namespace alt {
+#include <wx/regex.h>
+#include <string>
+#include <map>
 
-template <class TYPE>
+template <class VALUE>
 class dictionary {
 
-    private:
+    protected:
 
-        class entry {
+        class node {
+            public:
+                VALUE value;
+                std::map <wchar_t, node*> items;
+
+                virtual void print(int depth = 0) {
+                    for (auto item = items.begin(); item != items.end(); item++) {
+                        std::wstring padding(depth * 2, ' ');
+                        std::cout << padding << std::wstring(1, item->first) << std::endl;
+                        if (item->second->value.length() > 0) {
+                            std::cout << padding << "-> " << item->second->value << std::endl;
+                        }
+                        if (item->second->items.size() > 0) {
+                            item->second->print(depth + 1 );
+                        }
+                    }
+                }
+
+                virtual node *match(wchar_t chr) {
+                    //std::cout << "? => " << std::wstring(1, chr) << std::endl;
+                    auto item = items.find(chr);
+                    if (item != items.end()) {
+                        return item->second;
+                    }
+                    return 0;
+                }
+
+                virtual bool last() {
+                    return items.size() == 0;
+                }
+
+        };
+
+        class node_alnum: public node {
             public:
 
-                entry() {
-                    ID = 0;
-                    numChildren = 0;
-                    pObj = NULL;
-                    pChild = NULL;
-                    pNext = NULL;
+                virtual node *match(wchar_t chr) {
+                    node *n = node::match(chr);
+                    if (n == 0 && isalnum(chr)) {
+                        return this;
                     }
+                    return n;
+                }
 
-                ~entry() {
-                    if (pChild)
-                        delete pChild;
-                    if (pNext)
-                        delete pNext;
-                    if (pObj)
-                        delete pObj;
-                    }
+                bool last() {
+                    return false;
+                }
 
-                // creates a new entry after pP, NULL for 1st
-                entry *newEntry(entry *pP) {
-                    entry *pNew = new entry();
-                    ++numChildren;
-                    if (pChild) {
-                        if (pP) {
-                            // after pP
-                            pNew->pNext = pP->pNext;
-                            pP->pNext = pNew;
-                            } else {
-                                // add first
-                                pNew->pNext = pChild;
-                                pChild = pNew;
-                                }
-                        } else
-                            pChild = pNew;
-                    return pNew;
-                    }
+        };
 
-
-                TYPE exists(const char *pStr) {
-                    if (pChild) {
-                        entry *pI = pChild;
-
-                        while (pI && pI->ID < *pStr)
-                            pI = pI->pNext;
-
-                        if (pI && (pI->ID == *pStr)) {
-                            TYPE pObu = pI->exists(pStr+1);
-                            if (pObu)
-                                return pObu;
-                            }
-                        }
-
-                    // if at null char and pObj points to somewhere it exists
-                    if (!*pStr && pObj)
-                        return pObj;
-
-                    return NULL;
-                    }
-
-
-
-                TYPE scan_string(const char *pStart, const char *pEnd, char *pUser) {
-                    if (pChild) {
-                        entry *pI = pChild;
-
-                        while (pI && pI->ID < *pEnd)
-                            pI = pI->pNext;
-
-                        if (pI && (pI->ID == *pEnd)) {
-                            TYPE i = pI->scan_string(pStart, pEnd+1, pUser);
-                            if (i)
-                                return i;
-                            }
-                        }
-
-                    // if pObj points to somewhere it exists and
-                    // must be tested
-                    //if (pObj && pObj->scan_string_test(pStart, pEnd, pUser))
-                    //    return pObj;
-
-                    return 0;
-                    }
-
-                char ID;
-                int numChildren;
-
-                entry *pChild;
-                entry *pNext;
-                TYPE pObj; // null if leaf
-            };
-
-        entry root;
+        node root;
 
     public:
 
-        bool add(const char *, TYPE);
-//      void remove(const char *);
-//      void funcFetch(const char *pStr, char *pUsr); // calls TYPE->fetchFunc(pStart, pEnd, pUsr) when match is found
+        class result {
+            public:
 
-        TYPE exists(const char *pStr);
-        TYPE scan_string(const char *pStr, char *pUser);
+                result(node *_at, int _length): at(_at), length(_length) {}
 
-    };
+                node *at;
+                int length;
 
-
-////////////////////////////////////////////////////////////
-// add a word to the dictionary
-////////////////////////////////////////////////////////////
-template <class TYPE>
-bool dictionary <TYPE>::add(const char *pWord, TYPE pObject) {
-    entry *pParent = &root;
-    entry *pI = NULL;
-    entry *pP = NULL;
-    const char *pChar = pWord;
-
-    while (*pChar) {
-
-        pI = pParent->pChild;
-        pP = NULL;
-
-        // find a suitable slot for the entry
-        if (pI) {
-
-            while (pI && (pI->ID < *pChar)) {
-                pP = pI;
-                pI = pI->pNext;
+                bool match() {
+                    return length != -1;
                 }
 
-            if (pI && (pI->ID == *pChar))
-                pParent = pI;
-                else
-                    pParent = pParent->newEntry(pP); // last, or less than pI
+        };
 
-            } else
-                pParent = pParent->newEntry(pP); // 1st
-
-        pParent->ID = *pChar;
-        ++pChar;
+        void insert(std::wstring key, VALUE value) {
+            node *n = &root;
+            for (std::size_t i = 0; i < key.length(); i++) {
+                auto item = n->items.find(key[i]);
+                if (item != n->items.end()) {
+                    n = item->second;
+                }
+                else {
+                    node *nn = new node();
+                    n->items[key[i]] = nn;
+                    n = nn;
+                }
+            }
+            n->value = value;
         }
 
-    if (pParent->pObj)
-        return false;
 
-    pParent->pObj = pObject;
-    return true;
-    }
+        void insert_alnum(std::wstring key, VALUE value) {
+            node *n = &root;
+            for (std::size_t i = 0; i < key.length(); i++) {
+                auto item = n->items.find(key[i]);
+                if (item != n->items.end()) {
+                    n = item->second;
+                }
+                else {
+                    node *nn = new node_alnum();
+                    n->items[key[i]] = nn;
+                    n = nn;
+                }
+            }
+            n->value = value;
+        }
 
+        void print() {
+            root.print(0);
+        }
 
-/*
-////////////////////////////////////////////////////////////
-// remove a word from the dictionary
-////////////////////////////////////////////////////////////
-template <class TYPE>
-void dictionary <TYPE>::remove(const char *pStr) {
-    }
-*/
+        result find(std::wstring str) {
+            node *n = &root;
+            node *last = &root;
+            std::size_t last_i = -1;
+            for (std::size_t i = 0; i < str.length(); i++) {
+                auto nn = n->match(str[i]);
+                if (nn) {
+                    if (nn->last()) {
+                        return result(nn, i);
+                    }
+                    last = nn;
+                    last_i = i;
+                    n = nn;
+                } else {
+                    break;
+                }
+            }
+            return result(last, last_i);
+        }
 
-
-////////////////////////////////////////////////////////////
-// tests if a word exists in the dictionary
-////////////////////////////////////////////////////////////
-template <class TYPE>
-TYPE dictionary <TYPE>::exists(const char *pStr) {
-    return root.exists(pStr);
-    }
-
-
-////////////////////////////////////////////////////////////
-// tests if a word exists in the dictionary
-////////////////////////////////////////////////////////////
-template <class TYPE>
-TYPE dictionary <TYPE>::scan_string(const char *pStr, char *pUser) {
-    return root.scan_string(pStr, pStr, pUser);
-    }
-
-}
-
-#endif
+};
