@@ -17,6 +17,7 @@ class ide: public wxFrame {
 		virtual ~ide();
 
     	void OnPreferences(wxCommandEvent&);
+    	void OnFont(wxCommandEvent&);
   		lua &get_lua() { return this->lua; }
   		void Draw(wxDC &dc);
 

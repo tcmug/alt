@@ -3,6 +3,7 @@
 #include "config_dialog.hpp"
 #include "wx/wx.h"
 #include "wx/sizer.h"
+#include "wx/fontdlg.h"
 
 #include "../editor/editor.hpp"
 
@@ -12,7 +13,8 @@ enum {
 	Zero_Menu,
 	Menu_File_ShowDialog,
 	Menu_Blah,
-    wxID_Blah
+    wxID_Blah,
+    wxID_FONT
 };
 
 
@@ -53,15 +55,21 @@ ide::ide():
 
     wxMenu *fileMenu = new wxMenu;
     fileMenu->Append(wxID_PREFERENCES);
+    fileMenu->Append(wxID_FONT, wxT("Font"), wxT("Open the New dialog"));
     fileMenu->Append(wxID_EXIT);
 
     wxMenuBar *menuBar = new wxMenuBar();
     menuBar->Append(fileMenu, "&File");
     SetMenuBar(menuBar);
 
+    Connect(wxID_FONT,
+            wxEVT_MENU,
+            wxCommandEventHandler(ide::OnFont), NULL, this);
+
     Connect(wxID_PREFERENCES,
             wxEVT_MENU,
             wxCommandEventHandler(ide::OnPreferences), NULL, this);
+
 
 }
 
@@ -77,4 +85,22 @@ void ide::OnPreferences(wxCommandEvent&) {
 	dlg.ShowModal();
 }
 
+
+
+void ide::OnFont(wxCommandEvent&) {
+
+    wxFontData data;
+    //data.SetInitialFont(canvasFont);
+    //data.SetColour(canvasTextColour);
+    wxFontDialog dialog(this);
+    if (dialog.ShowModal() == wxID_OK)
+    {
+        wxFontData retData = dialog.GetFontData();
+        std::cout << retData.GetChosenFont().GetNativeFontInfoDesc() << std::endl;
+        wxFont canvasFont = retData.GetChosenFont();
+        wxColor canvasTextColour = retData.GetColour();
+        //myWindow->Refresh();
+    }
+
+}
 
