@@ -11,8 +11,6 @@
       name = "Just a number"
     },
     3 = {
-      type = "BOOLEAN",
-      value = true,
       kids = {
         1 = {
           type = "NUMBER",
@@ -25,6 +23,8 @@
           name = "Num 2"
         }
       },
+      type = "BOOLEAN",
+      value = true,
       name = "Boolean"
     }
   },

@@ -122,6 +122,14 @@ void text_line::erase(int pos) {
     mark_dirty();
 }
 
+void text_line::erase(int start, int end) {
+    std::cout << start << " - " << end << " : " << content.length() << std::endl;
+    std::wstring a = content.substr(0, start);
+    std::wstring b = content.substr(end);
+    content = a + b;
+    mark_dirty();
+}
+
 
 std::wstring text_line::cut(int pos) {
     std::wstring data = content.substr(pos);
@@ -129,6 +137,7 @@ std::wstring text_line::cut(int pos) {
     mark_dirty();
     return data;
 }
+
 
 
 int text_line::get_length() const {

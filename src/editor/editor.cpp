@@ -9,6 +9,7 @@ using alt::ide;
 
 BEGIN_EVENT_TABLE(EditView, wxPanel)
     EVT_LEFT_DOWN( EditView::OnLeftDown )
+    EVT_MOTION( EditView::OnMotion )
     EVT_LEFT_UP( EditView::OnLeftUp )
     EVT_CHAR( EditView::OnChar )
 END_EVENT_TABLE()
@@ -20,21 +21,19 @@ EditView::EditView(wxFrame* parent) :
     SetBackgroundColour(wxColour(100, 100, 100));
     SetForegroundColour(wxColour(100, 100, 100));
 
-    lines.push_back(text_line(L"<html>"));
-    lines.push_back(text_line(L"<body>"));
-    lines.push_back(text_line(L"<a href=\"/\">Go</a>"));
-    lines.push_back(text_line(L"this->that->there"));
-    lines.push_back(text_line(L"</body>"));
-    lines.push_back(text_line(L"</html>"));
-
-    markers.push_back(text_marker(
-        wxPoint(2, 1),
-        wxPoint(3, 1)
-    ));
+    for (int i = 0; i < 100; i++) {
+        lines.push_back(text_line(L"<html>"));
+        lines.push_back(text_line(L"<body>"));
+        lines.push_back(text_line(L"<a href=\"/\">Go</a>"));
+        lines.push_back(text_line(L"this->that->there"));
+        lines.push_back(text_line(L"</body>"));
+        lines.push_back(text_line(L"</html>"));
+    }
 
     scale = 1;
     buffer = NULL;
 
+    paint = false;
     font_size = 12;
 
     sstack = new state_stack<wchar_t>(new root_state());
@@ -116,21 +115,21 @@ void EditView::redraw(wxDC &dc) {
 
     // Update and render carets.
     for (auto &caret : carets) {
-        if (!is_dirty() && !caret.is_dirty())
+        if (!is_dirty() && !caret->is_dirty())
             continue;
-        caret.screen = lc_to_trc(caret.position).screen;
-        caret.update();
+        caret->screen = lc_to_trc(caret->position).screen;
+        caret->update();
     }
 
     // Update and render markers.
-    for (auto &marker : markers) {
-        if (!is_dirty() && !marker.is_dirty())
+    for (auto marker : markers) {
+        if (!is_dirty() && !marker->is_dirty())
             continue;
 
-        text_render_context start = lc_to_trc(marker.get_start());
-        text_render_context end = lc_to_trc(marker.get_end());
+        text_render_context start = lc_to_trc(marker->get_start());
+        text_render_context end = lc_to_trc(marker->get_end());
         wxPoint lower_right(end.screen.x, end.screen.y + end.max_line_height);
-        marker.update(
+        marker->update(
             start.screen,
             lower_right
         );
@@ -147,11 +146,11 @@ void EditView::redraw(wxDC &dc) {
     }
 
     for (const auto &caret : carets) {
-        caret.render(tx);
+        caret->render(tx);
     }
 
-    for (const auto &marker : markers) {
-        marker.render(tx);
+    for (const auto marker : markers) {
+        marker->render(tx);
     }
 
     canvas_size = wxSize(tx.max_line_width, tx.screen.y);
@@ -172,30 +171,30 @@ void EditView::redraw(wxDC &dc) {
 
 void EditView::fix_carets() {
 
-    for (std::vector <text_caret>::iterator i = carets.begin(); i != carets.end();) {
+    for (auto i = carets.begin(); i != carets.end();) {
         auto &caret = *i;
-        if (caret.position.y > lines.size())
+        if (caret->position.y > lines.size())
             i = carets.erase(i);
         else
             i++;
     }
 
     // Sort carets in the expected format (top to bottom).
-    std::sort(carets.begin(), carets.end());
+    // std::sort(carets.begin(), carets.end());
 
     // And get rid of dupes.
-    carets.erase(
-        unique(carets.begin(), carets.end()),
-        carets.end()
-    );
+    // carets.erase(
+    //     unique(carets.begin(), carets.end()),
+    //     carets.end()
+    // );
 }
 
 
 void EditView::OnLeftDown( wxMouseEvent& event ) {
 
     if (!event.AltDown()) {
-        carets.clear();
-        markers.clear();
+        clear_carets();
+        clear_markers();
     }
 
     wxClientDC dc(this);
@@ -210,8 +209,12 @@ void EditView::OnLeftDown( wxMouseEvent& event ) {
 
     text_render_context tx = pt_to_trc(screen);
 
-    carets.push_back(text_caret(tx.position, tx.screen, wxSize(2, std::max(font_size, tx.max_line_height))));
+    text_caret *caret = new text_caret(tx.position, tx.screen, wxSize(2, std::max(font_size, tx.max_line_height)));
+    caret->subscribe(this);
+    carets.push_back(caret);
 
+    paint_start = tx.position;
+    paint = true;
     fix_carets();
 
     Refresh();
@@ -219,6 +222,14 @@ void EditView::OnLeftDown( wxMouseEvent& event ) {
 
 
 void EditView::OnLeftUp( wxMouseEvent& event ) {
+    paint = false;
+}
+
+void EditView::OnMotion( wxMouseEvent& event ) {
+
+    if (!paint) {
+        return;
+    }
 
     wxClientDC dc(this);
 
@@ -227,18 +238,73 @@ void EditView::OnLeftUp( wxMouseEvent& event ) {
     screen.x /= scale;
     screen.y /= scale;
 
-
     screen.x += GetScrollPos(wxHORIZONTAL) / scale;
     screen.y += GetScrollPos(wxVERTICAL) / scale;
 
     text_render_context tx = pt_to_trc(screen);
 
+    this->paint_end = tx.position;
+
+    wxPoint paint_end = this->paint_end;
+    wxPoint paint_start = this->paint_start;
+
+    if (paint_end.y < paint_start.y) {
+        std::swap(paint_start, paint_end);
+    }
+    else if (paint_end.y == paint_start.y && paint_end.x < paint_start.x) {
+        std::swap(paint_start, paint_end);
+    }
+
+    wxPoint temp;
+
+    clear_markers();
+
+    if (paint_start.y == paint_end.y) {
+
+        if (paint_start.x != paint_end.x) {
+            text_marker *mar = new text_marker(
+                paint_start,
+                paint_end
+            );
+            mar->subscribe(this);
+            markers.push_back(mar);
+        }
+
+    }
+    /*
+    else {
+
+        markers.push_back(text_marker(
+            paint_start,
+            wxPoint(100, paint_start.y)
+        ));
+
+        for (int row = paint_start.y + 1; row < paint_end.y; row++) {
+            markers.push_back(text_marker(
+                wxPoint(0, row),
+                wxPoint(100, row)
+            ));
+        }
+
+        markers.push_back(text_marker(
+            wxPoint(0, paint_end.y),
+            wxPoint(paint_end.x, paint_end.y)
+        ));
+    }
+    */
+
+    // std::cout << paint_start.x << ":" << paint_start.y << " -> ";
+    // std::cout << paint_end.x << ":" << paint_end.y;
+    // std::cout << std::endl;
+
     //carets.push_back(text_caret(tx.position, tx.screen, wxSize(2, std::max(font_size, tx.max_line_height))));
 
-    // markers.push_back(text_marker(
-    //     tx.position,
-    //     wxPoint(100, tx.position.y)
-    // ));
+    /*
+    markers.push_back(text_marker(
+        tx.position,
+         wxPoint(100, tx.position.y)
+    ));
+    */
 
     fix_carets();
 
@@ -278,8 +344,10 @@ text_render_context EditView::pt_to_trc(wxPoint pt) {
     text_render_context tx(&dc);
     tx.position.x = -1;
 
+    std::cout << pt.x << " " << pt.y << std::endl;
+
     for (const auto &line : lines) {
-        if ((pt.y < tx.screen.y) || (pt.y > tx.screen.y + font_size)) {
+        if ((pt.y > (tx.screen.y + font_size))) {
             tx.position.y++;
             tx.max_line_height = line.get_line_height();
             tx.screen.y += line.get_line_height();
@@ -288,6 +356,8 @@ text_render_context EditView::pt_to_trc(wxPoint pt) {
         tx.position.x = line.map_point_to_column(tx, pt.x);
         break;
     }
+
+    std::cout << pt.x << " " << pt.y << " " << tx.screen.y << std::endl;
 
     if (tx.position.x == -1) {
         tx.position.x = (lines.end()-1)->map_point_to_column(tx, 100000);
@@ -347,7 +417,7 @@ void EditView::OnChar(wxKeyEvent& event) {
                 }
                 else if ( uc >= 32 ) {
                     std::wstring str(1, uc);
-                    insert_str(str);
+                    insert(str);
                 }
             break;
         }
@@ -365,61 +435,61 @@ void EditView::OnChar(wxKeyEvent& event) {
 
             case WXK_LEFT:
                 for (auto &caret : carets) {
-                    if (caret.position.x > 1) {
-                        caret.position.x--;
+                    if (caret->position.x > 1) {
+                        caret->position.x--;
                     }
                     else {
-                        if (caret.position.y > 1) {
-                            caret.position.y--;
-                            caret.position.x = lines[caret.position.y - 1].get_length() + 1;
+                        if (caret->position.y > 1) {
+                            caret->position.y--;
+                            caret->position.x = lines[caret->position.y - 1].get_length() + 1;
                         }
                         else {
-                            caret.position.x = 1;
+                            caret->position.x = 1;
                         }
                     }
-                    caret.screen = lc_to_trc(caret.position).screen;
+                    caret->screen = lc_to_trc(caret->position).screen;
                 }
             break;
 
             case WXK_RIGHT:
                 for (auto &caret : carets) {
-                    if (caret.position.x < lines[caret.position.y - 1].get_length() + 1) {
-                        caret.position.x++;
+                    if (caret->position.x < lines[caret->position.y - 1].get_length() + 1) {
+                        caret->position.x++;
                     }
                     else {
-                        if (caret.position.y < lines.size()) {
-                            caret.position.y++;
-                            caret.position.x = 1;
+                        if (caret->position.y < lines.size()) {
+                            caret->position.y++;
+                            caret->position.x = 1;
                         }
                         else {
-                            caret.position.x = lines[caret.position.y - 1].get_length() + 1;
+                            caret->position.x = lines[caret->position.y - 1].get_length() + 1;
                         }
                     }
-                    caret.screen = lc_to_trc(caret.position).screen;
+                    caret->screen = lc_to_trc(caret->position).screen;
                 }
             break;
 
             case WXK_UP:
                 for (auto &caret : carets) {
-                    if (caret.position.y > 1) {
-                        caret.position.y--;
-                        if (caret.position.x > lines[caret.position.y - 1].get_length() + 1) {
-                            caret.position.x = lines[caret.position.y - 1].get_length() + 1;
+                    if (caret->position.y > 1) {
+                        caret->position.y--;
+                        if (caret->position.x > lines[caret->position.y - 1].get_length() + 1) {
+                            caret->position.x = lines[caret->position.y - 1].get_length() + 1;
                         }
                     }
-                    caret.screen = lc_to_trc(caret.position).screen;
+                    caret->screen = lc_to_trc(caret->position).screen;
                 }
             break;
 
             case WXK_DOWN:
                 for (auto &caret : carets) {
-                    if (caret.position.y < lines.size()) {
-                        caret.position.y++;
-                        if (caret.position.x > lines[caret.position.y - 1].get_length() + 1) {
-                            caret.position.x = lines[caret.position.y - 1].get_length() + 1;
+                    if (caret->position.y < lines.size()) {
+                        caret->position.y++;
+                        if (caret->position.x > lines[caret->position.y - 1].get_length() + 1) {
+                            caret->position.x = lines[caret->position.y - 1].get_length() + 1;
                         }
                     }
-                    caret.screen = lc_to_trc(caret.position).screen;
+                    caret->screen = lc_to_trc(caret->position).screen;
                 }
             break;
 
@@ -429,7 +499,7 @@ void EditView::OnChar(wxKeyEvent& event) {
 
 
     if (carets.size() == 1) {
-        wxPoint point = carets[0].screen;
+        wxPoint point = (*carets.begin())->screen;
         int x = GetScrollPos(wxHORIZONTAL);
         int y = GetScrollPos(wxVERTICAL);
         int width, height;
@@ -441,8 +511,8 @@ void EditView::OnChar(wxKeyEvent& event) {
         }
     }
 
-    for (auto &marker : markers) {
-        marker.mark_dirty();
+    for (auto marker : markers) {
+        marker->mark_dirty();
     }
 
     fix_carets();
@@ -467,31 +537,37 @@ std::vector <T> split_string(const T string, T delim) {
 
 void EditView::erase() {
     for (auto &caret : carets) {
-        if (caret.position.x > 1) {
-            if (caret.position.x <= lines[caret.position.y - 1].get_length() + 1) {
-                lines[caret.position.y - 1].erase(caret.position.x - 2);
+        if (caret->position.x > 1) {
+            if (caret->position.x <= lines[caret->position.y - 1].get_length() + 1) {
+                lines[caret->position.y - 1].erase(caret->position.x - 2);
             }
-            caret.position.x--;
+            caret->position.x--;
         }
-        else if (caret.position.y > 1) {
-            caret.position.x = lines[caret.position.y - 2].get_length();
-            lines[caret.position.y - 2].insert(
-                caret.position.x,
-                lines[caret.position.y - 1].cut(0)
+        else if (caret->position.y > 1) {
+            caret->position.x = lines[caret->position.y - 2].get_length();
+            lines[caret->position.y - 2].insert(
+                caret->position.x,
+                lines[caret->position.y - 1].cut(0)
             );
-            caret.position.x++;
-            lines.erase(lines.begin() + (caret.position.y - 1));
-            caret.position.y--;
+            caret->position.x++;
+            lines.erase(lines.begin() + (caret->position.y - 1));
+            caret->position.y--;
         }
-        caret.mark_dirty();
+        caret->mark_dirty();
     }
 }
 
 
 void EditView::insert(std::wstring str) {
+/*
+    for (auto marker = markers.rbegin(); marker != markers.rend(); marker++) {
+        lines[marker->start.y - 1].erase(marker->start.x - 1, marker->end.x - 1);
+    }
+
+    markers.clear();
+*/
 
     std::vector <std::wstring> str_lines = split_string<std::wstring>(str, L"\n");
-
     auto line = *str_lines.begin();
     str_lines.erase(str_lines.begin());
     insert_str(line);
@@ -505,47 +581,52 @@ void EditView::insert(std::wstring str) {
 
 
 void EditView::insert_new_line() {
-    /*
-    a|b|c       2,3
-    ->
-    a
-    |b|c        1,2
-    ->
-    a
-    |b
-    |c
-    */
-    for (std::vector <text_caret>::iterator i = carets.begin(); i != carets.end(); i++) {
+    for (auto i = carets.begin(); i != carets.end(); i++) {
+
         auto &caret = (*i);
-        std::wstring leftover = lines[caret.position.y - 1].cut(caret.position.x - 1);
-        lines.insert(lines.begin() + caret.position.y, leftover);
 
-        for (std::vector <text_caret>::iterator j = i + 1; j != carets.end(); j++) {
-            if ((*j).position.y == caret.position.y) {
-                (*j).position.x -= caret.position.x - 1;
-            }
-            (*j).position.y++;
-        }
+        editor_event ev(editor_event::INSERT_LINE, caret->position);
+        notify(&ev);
 
-        caret.position.y++;
-        caret.position.x = 1;
-        caret.mark_dirty();
+        std::wstring leftover = lines[caret->position.y - 1].cut(caret->position.x - 1);
+        lines.insert(lines.begin() + caret->position.y, leftover);
+
+        // for (auto j = i + 1; j != carets.end(); j++) {
+        //     if ((*j).position.y == caret->position.y) {
+        //         (*j).position.x -= caret->position.x - 1;
+        //     }
+        //     (*j).position.y++;
+        // }
+
+        caret->position.y++;
+        caret->position.x = 1;
+        caret->mark_dirty();
     }
 }
 
 
 void EditView::insert_str(std::wstring str) {
-    for (std::vector <text_caret>::iterator i = carets.begin(); i != carets.end(); i++) {
-        auto &caret = (*i);
-        lines[caret.position.y - 1].insert(caret.position.x - 1, str);
-
-        for (std::vector <text_caret>::iterator j = i + 1; j != carets.end(); j++) {
-            if ((*j).position.y == caret.position.y) {
-                (*j).position.x += str.length();
-            }
-        }
-
-        caret.position.x += str.length();
-        caret.mark_dirty();
+    for (auto i = carets.begin(); i != carets.end(); i++) {
+        lines[(*i)->position.y - 1].insert((*i)->position.x - 1, str);
+        editor_event ev(editor_event::INSERT_STRING, (*i)->position);
+        ev.string = str;
+        notify(&ev);
     }
+}
+
+
+void EditView::clear_markers() {
+    for (auto mark : markers) {
+        delete mark;
+    }
+    markers.clear();
+}
+
+
+
+void EditView::clear_carets() {
+    for (auto caret : carets) {
+        delete caret;
+    }
+    carets.clear();
 }

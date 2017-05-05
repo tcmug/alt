@@ -6,43 +6,29 @@
 #include "wx/wx.h"
 #include "wx/sizer.h"
 
+#include "../misc/observer.hpp"
 #include "text_line.hpp"
 #include "text_caret.hpp"
 #include "text_render_context.hpp"
 #include "text_marker.hpp"
 #include "dirtyable.hpp"
 #include "state.hpp"
+#include "editor_event.hpp"
 
 using alt::ide;
-
-
-class edit_event {
-
-    public:
-
-        enum TYPE {
-            DELETE,
-            INSERT
-        };
-
-        TYPE type;
-        std::string content;
-        std::vector <text_caret> carets;
-};
-
 
 typedef state_stack <wchar_t> state_stack_editor;
 
 
-class EditView : public wxScrolledWindow, public dirtyable {
+class EditView : public wxScrolledWindow, public dirtyable, public subject {
 
     protected:
 
         wxSize canvas_size;
 
         std::vector <text_line> lines;
-        std::vector <text_caret> carets;
-        std::vector <text_marker> markers;
+        std::vector <text_caret*> carets;
+        std::vector <text_marker*> markers;
 
         state_stack<wchar_t> *sstack;
 
@@ -51,6 +37,10 @@ class EditView : public wxScrolledWindow, public dirtyable {
 
         wxFont font;
         wxBitmap *buffer;
+
+        wxPoint paint_start;
+        wxPoint paint_end;
+        bool paint;
 
         wxSize render(wxDC &dc);
 
@@ -73,12 +63,17 @@ class EditView : public wxScrolledWindow, public dirtyable {
 
     public:
 
+        void clear_markers();
+        void clear_carets();
+
         EditView(wxFrame* parent);
 
         void OnChar(wxKeyEvent& event);
+
         void OnDraw(wxDC &dc);
         void OnLeftDown(wxMouseEvent &event);
         void OnLeftUp(wxMouseEvent &event);
+        void OnMotion(wxMouseEvent &event);
 
         DECLARE_EVENT_TABLE()
 

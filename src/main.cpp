@@ -183,7 +183,7 @@ bool alt_ide_app::OnInit() {
 	std::wcout << code << std::endl;
 	std::wcout << result << std::endl;
 	//}
-	return 0;
+	//return 0;
 	// std::cout << dic.find(L"->") << std::endl;
 	// std::cout << dic.find(L"-") << std::endl;
 	// std::cout << dic.find(L"x") << std::endl;

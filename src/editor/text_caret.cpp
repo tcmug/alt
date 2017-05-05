@@ -39,3 +39,23 @@ bool text_caret::operator == (const text_caret& other) const {
 void text_caret::report() {
     std::cout << position.x << " " << position.y << std::endl;
 }
+
+
+void text_caret::notify(event *_event) {
+    editor_event *event = static_cast<editor_event*>(_event);
+    switch (event->type) {
+        case editor_event::INSERT_STRING:
+            if (position.y == event->position.y &&
+                position.x >= event->position.x) {
+                position.x += event->string.length();
+                mark_dirty();
+            }
+        break;
+        case editor_event::INSERT_LINE:
+            if (event->position.y < position.y) {
+                position.y = position.y + 1;
+                mark_dirty();
+            }
+        break;
+    }
+}

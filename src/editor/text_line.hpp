@@ -35,8 +35,10 @@ class text_line:
 
         std::wstring cut(int pos);
 
+
         void insert(int pos, std::wstring str);
         void erase(int pos);
+        void erase(int start, int end);
 
         int get_line_height() const;
 };

@@ -5,9 +5,11 @@
 
 #include "text_render_context.hpp"
 #include "dirtyable.hpp"
+#include "editor_event.hpp"
 
 class text_caret:
-    public dirtyable {
+    public dirtyable,
+    public observer {
 
     public:
 
@@ -23,6 +25,8 @@ class text_caret:
 
         void report();
         void update();
+
+        void notify(event *_event);
 
 };
 

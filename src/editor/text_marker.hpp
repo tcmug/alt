@@ -3,12 +3,18 @@
 
 #include "wx/wx.h"
 #include "dirtyable.hpp"
+#include "../misc/observer.hpp"
 
+#include "editor_event.hpp"
 #include "text_render_context.hpp"
 
-class text_marker: public dirtyable {
+class text_marker:
+    public dirtyable,
+    public observer {
 
     private:
+
+        friend class EditView;
 
         wxPoint start;
         wxPoint end;
@@ -20,12 +26,14 @@ class text_marker: public dirtyable {
 
         text_marker(wxPoint _start, wxPoint _end);
 
-        wxPoint get_start() const { return start; }
-        wxPoint get_end() const { return end; }
+        wxPoint get_start() const { return start; }
+        wxPoint get_end() const { return end; }
 
         void update(wxPoint start, wxPoint end);
 
         void render(text_render_context &tx) const;
+
+        void notify(event *event);
 
 };
 
