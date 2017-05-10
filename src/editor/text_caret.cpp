@@ -1,6 +1,7 @@
 
 #include "text_caret.hpp"
 #include "text_render_context.hpp"
+#include "editor.hpp"
 
 #include <algorithm>
 
@@ -43,7 +44,24 @@ void text_caret::report() {
 
 void text_caret::notify(event *_event) {
     editor_event *event = static_cast<editor_event*>(_event);
+    EditView *source = static_cast<EditView*>(event->source);
     switch (event->type) {
+
+        case editor_event::ERASE_STRING:
+            if (position.y == event->position.y) {
+                if (position.x == 1) {
+                    if (position.y > 1) {
+                        position.x = source->lines[position.y - 2].get_length() + 1;
+                        position.y--;
+                    }
+                }
+                else if (position.x >= event->position.x) {
+                    position.x--;
+                }
+            }
+            mark_dirty();
+        break;
+
         case editor_event::INSERT_STRING:
             if (position.y == event->position.y &&
                 position.x >= event->position.x) {
@@ -51,6 +69,7 @@ void text_caret::notify(event *_event) {
                 mark_dirty();
             }
         break;
+
         case editor_event::INSERT_LINE:
             if (event->position.y < position.y) {
                 position.y = position.y + 1;

@@ -10,7 +10,9 @@ class editor_event:
 
         enum TYPE {
             INSERT_LINE,
-            INSERT_STRING
+            INSERT_STRING,
+            ERASE_LINE,
+            ERASE_STRING
         };
 
         editor_event(TYPE t, wxPoint pos): type(t), position(pos) {

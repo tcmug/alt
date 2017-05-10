@@ -1,4 +1,4 @@
-#include "text_marker.hpp"
+ #include "text_marker.hpp"
 
 
 text_marker::text_marker(wxPoint _start, wxPoint _end):

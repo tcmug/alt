@@ -7,6 +7,7 @@
 #include "wx/sizer.h"
 
 #include "../misc/observer.hpp"
+#include "file.hpp"
 #include "text_line.hpp"
 #include "text_caret.hpp"
 #include "text_render_context.hpp"
@@ -22,6 +23,8 @@ typedef state_stack <wchar_t> state_stack_editor;
 
 class EditView : public wxScrolledWindow, public dirtyable, public subject {
 
+    friend class text_caret;
+
     protected:
 
         wxSize canvas_size;
@@ -31,6 +34,7 @@ class EditView : public wxScrolledWindow, public dirtyable, public subject {
         std::vector <text_marker*> markers;
 
         state_stack<wchar_t> *sstack;
+        file content;
 
         int font_size;
         float scale;

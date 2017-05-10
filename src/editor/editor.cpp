@@ -15,19 +15,28 @@ BEGIN_EVENT_TABLE(EditView, wxPanel)
 END_EVENT_TABLE()
 
 
+#include <iostream>
+#include <string>
+#include <fstream>
+#include <streambuf>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <algorithm>
+
+
 EditView::EditView(wxFrame* parent) :
     wxScrolledWindow(parent) {
     SetCursor(wxCursor(wxCURSOR_IBEAM));
     SetBackgroundColour(wxColour(100, 100, 100));
     SetForegroundColour(wxColour(100, 100, 100));
 
-    for (int i = 0; i < 100; i++) {
-        lines.push_back(text_line(L"<html>"));
-        lines.push_back(text_line(L"<body>"));
-        lines.push_back(text_line(L"<a href=\"/\">Go</a>"));
-        lines.push_back(text_line(L"this->that->there"));
-        lines.push_back(text_line(L"</body>"));
-        lines.push_back(text_line(L"</html>"));
+
+    std::wifstream t("test.cpp");
+    std::wstring str;
+    while (std::getline(t, str)) {
+        str.erase(std::remove(str.begin(), str.end(), '\n'), str.end());
+        lines.push_back(text_line(str));
     }
 
     scale = 1;
@@ -76,9 +85,9 @@ wxSize EditView::render(wxDC &dc) {
 
 void EditView::redraw(wxDC &dc) {
 
-    wxSize client_size = dc.GetSize();
-    /*
 
+    /*
+    wxSize client_size = dc.GetSize();
     const float block_size = 128;
     int block_width = ceil(client_size.GetWidth() / block_size) * block_size;
     int block_height = ceil(client_size.GetHeight() / block_size) * block_size;
@@ -102,9 +111,6 @@ void EditView::redraw(wxDC &dc) {
     dc.SetFont(font);
     dc.SetUserScale(scale, scale);
     text_render_context tx(&dc);
-
-    tx.offset_y = GetScrollPos(wxVERTICAL);
-    tx.lower_y = tx.offset_y + client_size.GetHeight();
 
     // Update and render lines.
     for (auto &line : lines) {
@@ -138,15 +144,11 @@ void EditView::redraw(wxDC &dc) {
     tx.reset();
 
     // Handle rendering.
+    tx.viewport_position.y = GetScrollPos(wxVERTICAL) / scale;
+    tx.viewport_extents = dc.GetSize();
 
     for (const auto &line : lines) {
         line.render(tx);
-        // if (tx.screen.y > tx.lower_y)
-        //     break;
-    }
-
-    for (const auto &caret : carets) {
-        caret->render(tx);
     }
 
     for (const auto marker : markers) {
@@ -168,6 +170,9 @@ void EditView::redraw(wxDC &dc) {
 
 }
 
+bool compareCaret(text_caret *a, text_caret *b) {
+    return (*a < *b);
+}
 
 void EditView::fix_carets() {
 
@@ -180,7 +185,7 @@ void EditView::fix_carets() {
     }
 
     // Sort carets in the expected format (top to bottom).
-    // std::sort(carets.begin(), carets.end());
+    std::sort(carets.begin(), carets.end(), compareCaret);
 
     // And get rid of dupes.
     // carets.erase(
@@ -344,7 +349,7 @@ text_render_context EditView::pt_to_trc(wxPoint pt) {
     text_render_context tx(&dc);
     tx.position.x = -1;
 
-    std::cout << pt.x << " " << pt.y << std::endl;
+    //std::cout << pt.x << " " << pt.y << std::endl;
 
     for (const auto &line : lines) {
         if ((pt.y > (tx.screen.y + font_size))) {
@@ -357,7 +362,7 @@ text_render_context EditView::pt_to_trc(wxPoint pt) {
         break;
     }
 
-    std::cout << pt.x << " " << pt.y << " " << tx.screen.y << std::endl;
+    //std::cout << pt.x << " " << pt.y << " " << tx.screen.y << std::endl;
 
     if (tx.position.x == -1) {
         tx.position.x = (lines.end()-1)->map_point_to_column(tx, 100000);
@@ -497,7 +502,6 @@ void EditView::OnChar(wxKeyEvent& event) {
 
     }
 
-
     if (carets.size() == 1) {
         wxPoint point = (*carets.begin())->screen;
         int x = GetScrollPos(wxHORIZONTAL);
@@ -535,25 +539,34 @@ std::vector <T> split_string(const T string, T delim) {
 }
 
 
+/*
+ a b c d e f
+|a b c d|e f
+->
+ a b c d e f|a b c|e f
+*/
 void EditView::erase() {
-    for (auto &caret : carets) {
+
+    for (auto icaret = carets.rbegin(); icaret != carets.rend(); icaret++) {
+        auto *caret = *icaret;
+
         if (caret->position.x > 1) {
             if (caret->position.x <= lines[caret->position.y - 1].get_length() + 1) {
                 lines[caret->position.y - 1].erase(caret->position.x - 2);
             }
-            caret->position.x--;
+            editor_event ev(editor_event::ERASE_STRING, caret->position);
+            notify(&ev);
         }
         else if (caret->position.y > 1) {
-            caret->position.x = lines[caret->position.y - 2].get_length();
-            lines[caret->position.y - 2].insert(
-                caret->position.x,
-                lines[caret->position.y - 1].cut(0)
+            wxPoint pos = caret->position;
+            editor_event ev(editor_event::ERASE_STRING, caret->position);
+            notify(&ev);
+            lines[pos.y - 2].insert(
+                lines[pos.y - 2].get_length(),
+                lines[pos.y - 1].cut(0)
             );
-            caret->position.x++;
-            lines.erase(lines.begin() + (caret->position.y - 1));
-            caret->position.y--;
+            lines.erase(lines.begin() + (pos.y - 1));
         }
-        caret->mark_dirty();
     }
 }
 
@@ -591,13 +604,6 @@ void EditView::insert_new_line() {
         std::wstring leftover = lines[caret->position.y - 1].cut(caret->position.x - 1);
         lines.insert(lines.begin() + caret->position.y, leftover);
 
-        // for (auto j = i + 1; j != carets.end(); j++) {
-        //     if ((*j).position.y == caret->position.y) {
-        //         (*j).position.x -= caret->position.x - 1;
-        //     }
-        //     (*j).position.y++;
-        // }
-
         caret->position.y++;
         caret->position.x = 1;
         caret->mark_dirty();
@@ -621,7 +627,6 @@ void EditView::clear_markers() {
     }
     markers.clear();
 }
-
 
 
 void EditView::clear_carets() {

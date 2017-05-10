@@ -20,7 +20,12 @@ void text_line::render(text_render_context &tx) const {
     tx.screen.x = tx.left_padding;
 
     tx.max_line_height = extents.GetHeight();
-    tx.print(content);
+
+    if (tx.screen.y > tx.viewport_position.y &&
+        tx.screen.y < tx.viewport_position.y + tx.viewport_extents.GetHeight()) {
+        tx.print(content);
+    }
+
     tx.max_line_width = std::max(tx.max_line_width, tx.screen.x);
 
     tx.position.y++;
@@ -99,8 +104,6 @@ void text_line::update(text_render_context &tx) {
         extents = tx.get_extents(content.c_str());
     }
 
-    //extents.SetHeight(extents.GetHeight());
-
     screen.x = tx.left_padding;
     screen.y = tx.screen.y;
 
@@ -116,14 +119,12 @@ void text_line::insert(int pos, std::wstring str) {
 }
 
 
-
 void text_line::erase(int pos) {
     content.erase(pos, 1);
     mark_dirty();
 }
 
 void text_line::erase(int start, int end) {
-    std::cout << start << " - " << end << " : " << content.length() << std::endl;
     std::wstring a = content.substr(0, start);
     std::wstring b = content.substr(end);
     content = a + b;

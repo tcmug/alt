@@ -8,21 +8,21 @@ class text_render_context {
     public:
 
         text_render_context(wxDC *_dc);
-        void print(std::wstring content);
-        wxSize get_extents(std::wstring content);
+        void print(const std::wstring &content);
+        wxSize get_extents(const std::wstring &content);
 
         wxDC *dc;
 
         wxPoint position;
         wxPoint screen;
 
+        wxPoint viewport_position;
+        wxSize viewport_extents;
+
         int max_line_width;
         int max_line_height;
 
         int left_padding;
-
-        int offset_y;
-        int lower_y;
 
         state_stack <wchar_t> *sstack;
 
