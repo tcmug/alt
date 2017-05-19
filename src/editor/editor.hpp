@@ -8,7 +8,6 @@
 
 #include "../misc/observer.hpp"
 #include "file.hpp"
-#include "text_line.hpp"
 #include "text_caret.hpp"
 #include "text_render_context.hpp"
 #include "text_marker.hpp"
@@ -21,20 +20,32 @@ using alt::ide;
 typedef state_stack <wchar_t> state_stack_editor;
 
 
+class line_state {
+
+    public:
+
+        line_state(wxPoint _screen, wxSize _extents): screen(_screen), extents(_extents) {
+        }
+
+        wxPoint screen;
+        wxSize extents;
+};
+
+
 class EditView : public wxScrolledWindow, public dirtyable, public subject {
 
     friend class text_caret;
 
     protected:
 
-        wxSize canvas_size;
-
-        std::vector <text_line> lines;
         std::vector <text_caret*> carets;
         std::vector <text_marker*> markers;
 
-        state_stack<wchar_t> *sstack;
+        //
         file content;
+        std::vector <line_state> line_states;
+        wxSize canvas_size;
+        //
 
         int font_size;
         float scale;
@@ -64,6 +75,7 @@ class EditView : public wxScrolledWindow, public dirtyable, public subject {
         void fix_carets();
 
         void redraw(wxDC &dc);
+        void update();
 
     public:
 

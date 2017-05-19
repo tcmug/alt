@@ -15,11 +15,11 @@ class editor_event:
             ERASE_STRING
         };
 
-        editor_event(TYPE t, wxPoint pos): type(t), position(pos) {
+        editor_event(TYPE t, std::size_t pos): type(t), position(pos) {
         }
 
         TYPE type;
-        wxPoint position;
+        std::size_t position;
         std::wstring string;
 };
 

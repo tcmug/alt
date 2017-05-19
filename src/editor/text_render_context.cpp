@@ -8,10 +8,10 @@
 
 text_render_context::text_render_context(wxDC *_dc):
     dc(_dc),
-    left_padding(20),
     screen(0, 0),
-    position(1, 1) {
-    sstack = new state_stack<wchar_t>(new root_state());
+    position(1, 1),
+    max_line_width(0),
+    max_line_height(0) {
 }
 
 
@@ -41,7 +41,8 @@ void text_render_context::print(const std::wstring &content) {
 
     wxSize sz = get_extents(content.c_str());
     dc->SetTextForeground(wxColour(0, 255, 255));
-    dc->DrawText(content.c_str(), screen.x, screen.y);
+    wxString str = content;
+    dc->DrawText(str, screen.x, screen.y);
     screen.x += sz.GetWidth();
     position.x += content.length();
 
@@ -125,14 +126,14 @@ wxSize text_render_context::get_extents(const std::wstring &content) {
 
     int w = 0;
     int h = 0;
+    wxSize sz;
 
-    wxSize sz = dc->GetTextExtent(content);
-
-    w += sz.GetWidth();
-    h = std::max(sz.GetHeight(), h);
-
-    sz.SetWidth(w);
-    sz.SetHeight(h);
+    if (content.empty()) {
+        sz = dc->GetTextExtent(" ");
+    }
+    else {
+        sz = dc->GetTextExtent(content);
+    }
 
     return sz;
 }

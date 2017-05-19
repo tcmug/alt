@@ -22,10 +22,6 @@ class text_render_context {
         int max_line_width;
         int max_line_height;
 
-        int left_padding;
-
-        state_stack <wchar_t> *sstack;
-
         void report();
         void reset();
 };

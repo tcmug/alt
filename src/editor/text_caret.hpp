@@ -13,11 +13,11 @@ class text_caret:
 
     public:
 
-        text_caret(wxPoint _position, wxPoint _screen, wxSize _extents);
+        text_caret(std::size_t _position, wxPoint _screen, wxSize _extents);
         void render(text_render_context &tx) const;
 
+        std::size_t position;
         wxPoint screen;
-        wxPoint position;
         wxSize extents;
 
         bool operator < (const text_caret& other) const;

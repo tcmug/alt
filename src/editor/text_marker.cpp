@@ -30,22 +30,22 @@ void text_marker::render(text_render_context &tx) const {
 void text_marker::notify(event *_event) {
     editor_event *event = static_cast<editor_event*>(_event);
     switch (event->type) {
-        case editor_event::INSERT_STRING:
-            if (start.y == event->position.y &&
-                start.x >= event->position.x) {
-                start.x += event->string.length();
-                end.x += event->string.length();
-                mark_dirty();
-            }
-        break;
-        case editor_event::INSERT_LINE:
-            if (event->position.y < start.y) {
-                start.y = start.y + 1;
-                end.y = end.y + 1;
-                mark_dirty();
-                std::cout << "NEWLINE" << std::endl;
-            }
-        break;
+        // case editor_event::INSERT_STRING:
+        //     if (start.y == event->position.y &&
+        //         start.x >= event->position.x) {
+        //         start.x += event->string.length();
+        //         end.x += event->string.length();
+        //         mark_dirty();
+        //     }
+        // break;
+        // case editor_event::INSERT_LINE:
+        //     if (event->position.y < start.y) {
+        //         start.y = start.y + 1;
+        //         end.y = end.y + 1;
+        //         mark_dirty();
+        //         std::cout << "NEWLINE" << std::endl;
+        //     }
+        // break;
     }
 }
 
