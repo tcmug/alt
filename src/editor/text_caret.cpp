@@ -27,13 +27,11 @@ void text_caret::update() {
 }
 
 bool text_caret::operator < (const text_caret& other) const {
-    if (position == other.position)
-        return (position < other.position);
     return (position < other.position);
 }
 
 bool text_caret::operator == (const text_caret& other) const {
-    return (position == other.position && position == other.position);
+    return (position == other.position);
 }
 
 
@@ -47,11 +45,17 @@ void text_caret::notify(event *_event) {
     EditView *source = static_cast<EditView*>(event->source);
     switch (event->type) {
         case editor_event::ERASE_STRING:
+            if (position >= event->position) {
+                if (position > event->string.length())
+                    position -= event->string.length();
+                else
+                    position = 0;
+                mark_dirty();
+            }
         break;
 
         case editor_event::INSERT_STRING:
             if (position >= event->position) {
-                std::cout << "hehe" << std::endl;
                 position += event->string.length();
                 mark_dirty();
             }

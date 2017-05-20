@@ -1,6 +1,7 @@
 
 #include "file.hpp"
 
+#include <assert.h>
 #include <iostream>
 #include <string>
 #include <fstream>
@@ -106,6 +107,7 @@ void file::insert(std::size_t pos, std::wstring str) {
 
 
 void file::erase(std::size_t pos, std::size_t len) {
+    assert(pos >= 0 && pos + len < content.length());
     content.erase(pos, len);
     scan_lines(pos);
 }

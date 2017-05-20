@@ -156,9 +156,12 @@ void EditView::redraw(wxDC &dc) {
 
 
 
+
 bool compareCaret(text_caret *a, text_caret *b) {
-    return (*a < *b);
+    return (a->position == b->position);
 }
+
+
 
 void EditView::fix_carets() {
 
@@ -172,14 +175,26 @@ void EditView::fix_carets() {
 
     // Sort carets in the expected format (top to bottom).
 
-
     std::sort(carets.begin(), carets.end(), compareCaret);
 
     // And get rid of dupes.
+    // for (auto i = carets.begin() + 1; i != carets.end(); i++) {
+    //     if ((*i)->position == (*(i-1))->position) {
+    //         std::cout << (*i)->position << " " << (*(i-1))->position << std::endl;
+    //         //i = carets.erase(i);
+    //     }
+    // }
     // carets.erase(
     //     unique(carets.begin(), carets.end()),
     //     carets.end()
     // );
+
+    carets.erase(unique(carets.begin(), carets.end(), compareCaret), carets.end());
+
+    int i = 1;
+    for (auto &caret : carets) {
+        std::cout << i++ << "\t" << caret->position << std::endl;
+    }
 }
 
 
@@ -446,6 +461,18 @@ std::vector <T> split_string(const T string, T delim) {
  a b c d e f|a b c|e f
 */
 void EditView::erase() {
+    //for (auto icaret = carets.rbegin(); icaret != carets.rend(); icaret++) {
+    for (auto &caret : carets) {
+        // auto caret = *icaret;
+        if (caret->position <= 0) {
+            continue;
+        }
+        std::cout << caret->position << std::endl;
+        content.erase(caret->position - 1, 1);
+        editor_event event(editor_event::ERASE_STRING, caret->position - 1);
+        event.string = '?';
+        notify(&event);
+    }
 }
 
 
