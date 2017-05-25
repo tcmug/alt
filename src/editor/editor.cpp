@@ -42,6 +42,19 @@ EditView::EditView(wxFrame* parent) :
     // font = wxFont("0;13;76;90;90;0;Glass TTY VT220;49");
     // font_size, wxFONTFAMILY_TELETYPE, wxFONTSTYLE_NORMAL, wxFONTWEIGHT_NORMAL, false, "Roboto");
 
+    format = new formatting();
+
+    formatting::node *tag = format->insert(L"\\<\\/?\\w+", L"TAG-ENTER", formatting::ENTER);
+    tag->insert(L"\\\"[^\\\"]*\\\"", L"DQ-STRING");
+    tag->insert(L"\\'[^\\']*\\'", L"SQ-STRING");
+    tag->insert(L"([a-z]+)(?=\\W*\\=)", L"ATTR");
+    tag->insert(L"\\>", L"TAG-EXIT", formatting::DROP);
+
+    auto entry = format->insert(L"\\<\\?(php)?", L"PHP-ENTER", formatting::ENTER);
+    entry->insert(L"\\?\\>", L"PHP-EXIT", formatting::DROP);
+    entry->insert(L"\\$[A-Za-z0-9_]+", L"VAR");
+
+
 }
 
 
@@ -68,7 +81,7 @@ void EditView::update() {
     dc.SetFont(font);
     dc.SetUserScale(scale, scale);
 
-    text_render_context tx(&dc);
+    text_render_context tx(&dc, format);
 
     tx.viewport_position.y = GetScrollPos(wxVERTICAL) / scale;
     tx.viewport_extents = dc.GetSize();
@@ -105,7 +118,7 @@ void EditView::redraw(wxDC &dc) {
     dc.SetUserScale(scale, scale);
     dc.SetLogicalOrigin(-20, 0);
 
-    text_render_context tx(&dc);
+    text_render_context tx(&dc, format);
 
     tx.viewport_position.y = GetScrollPos(wxVERTICAL) / scale;
     tx.viewport_extents = dc.GetSize();
@@ -298,7 +311,7 @@ void EditView::OnChar(wxKeyEvent& event) {
 
             case 9: {
                 // Tab.
-                insert(L"Sameline\n\nEmpty line before this\nAt the end");
+                insert(L"\t");
             }
             break;
 

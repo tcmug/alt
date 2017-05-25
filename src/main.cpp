@@ -145,7 +145,6 @@ bool alt_ide_app::OnInit() {
 
 	regtionary <std::wstring> dic;
 
-
 	auto tag = dic.insert(L"\\<\\/?\\w+", L"TAG-ENTER", regtionary<std::wstring>::ENTER);
 	tag->insert(L"\\\"[^\\\"]*\\\"", L"DQ-STRING");
 	tag->insert(L"\\'[^\\']*\\'", L"SQ-STRING");

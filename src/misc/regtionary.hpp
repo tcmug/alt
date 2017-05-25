@@ -1,11 +1,16 @@
 #ifndef REGTIONARY_HPP
 #define REGTIONARY_HPP
 
+#include <wx/regex.h>
+#include <string>
+#include <vector>
+
 
 template <class VALUE>
 class regtionary {
 
-    protected:
+    public:
+
         class node;
 
     public:
@@ -91,8 +96,6 @@ class regtionary {
         };
 
 
-    protected:
-
         class node {
 
             public:
@@ -146,9 +149,6 @@ class regtionary {
         };
 
         node root;
-
-    public:
-
 
         node *insert(std::wstring key, VALUE value, NODETYPE type = SINGLE) {
             return root.insert(key, value, type);

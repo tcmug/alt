@@ -6,12 +6,13 @@
 #include <vector>
 
 
-text_render_context::text_render_context(wxDC *_dc):
+text_render_context::text_render_context(wxDC *_dc, formatting *frmt):
     dc(_dc),
     screen(0, 0),
     position(1, 1),
     max_line_width(0),
-    max_line_height(0) {
+    max_line_height(0),
+    format(frmt) {
 }
 
 
@@ -39,12 +40,24 @@ std::vector <T> split_string(const T string, T delim) {
 
 void text_render_context::print(const std::wstring &content) {
 
-    wxSize sz = get_extents(content.c_str());
     dc->SetTextForeground(wxColour(0, 255, 255));
-    wxString str = content;
-    dc->DrawText(str, screen.x, screen.y);
-    screen.x += sz.GetWidth();
-    position.x += content.length();
+
+    for (std::size_t i = 0; i < content.length(); i++) {
+        wchar_t c = content.c_str()[i];
+        std::wstring str(1, c);
+        wxSize sz = get_extents(str);
+        wxString wxstr = str;
+        std::cout << c << std::endl;
+        dc->DrawText(wxstr, screen.x, screen.y);
+        screen.x += sz.GetWidth();
+    }
+
+    // wxSize sz = get_extents(content.c_str());
+    // dc->SetTextForeground(wxColour(0, 255, 255));
+    //
+    // dc->DrawText(str, screen.x, screen.y);
+    // screen.x += sz.GetWidth();
+    // position.x += content.length();
 
 /*
     const root_state *state, *current_state;
@@ -134,6 +147,7 @@ wxSize text_render_context::get_extents(const std::wstring &content) {
     else {
         sz = dc->GetTextExtent(content);
     }
+
 
     return sz;
 }

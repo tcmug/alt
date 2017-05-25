@@ -7,6 +7,7 @@
 #include "wx/sizer.h"
 
 #include "../misc/observer.hpp"
+#include "../misc/regtionary.hpp"
 #include "file.hpp"
 #include "text_caret.hpp"
 #include "text_render_context.hpp"
@@ -16,8 +17,6 @@
 #include "editor_event.hpp"
 
 using alt::ide;
-
-typedef state_stack <wchar_t> state_stack_editor;
 
 
 class line_state {
@@ -40,6 +39,7 @@ class EditView : public wxScrolledWindow, public dirtyable, public subject {
 
         std::vector <text_caret*> carets;
         std::vector <text_marker*> markers;
+        formatting *format;
 
         //
         file content;
