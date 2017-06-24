@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-
 template <class VALUE>
 class regtionary {
 
@@ -17,6 +16,7 @@ class regtionary {
 
 
         enum NODETYPE {
+            ROOT,
             SINGLE,
             ENTER,
             DROP
@@ -26,15 +26,22 @@ class regtionary {
         class result {
             public:
 
-                result(node *_cn, const wchar_t *_at):
+                result(node *_cn, const wchar_t *_at, const wchar_t *_end):
                     current_node(_cn),
                     at(_at),
+                    end(_end),
                     start(0),
-                    length(0) {
+                    length(0),
+                    hits(0) {
+                    if (!end) {
+                        end = at + wcslen(at);
+                    }
                 }
 
                 node *current_node;
+                int hits;
                 const wchar_t *at;
+                const wchar_t *end;
 
                 std::wstring snip;
 
@@ -45,13 +52,17 @@ class regtionary {
                     assert(at != NULL);
                     assert(current_node != NULL);
 
+                    if (current_node->type == regtionary <VALUE>::SINGLE) {
+                        current_node = current_node->parent;
+                    }
+
                     at = at + (start + length);
 
                     if (*at == 0) {
                         return false;
                     }
 
-                    start = 1000;
+                    start = 100000;
                     length = 0;
                     node *_next = NULL;
 
@@ -69,24 +80,22 @@ class regtionary {
                         }
                     }
 
+                    // No match found, return full string as match.
                     if (_next == NULL) {
-                        std::wcout << at << std::endl;
-                        start = wcslen(at);
+                        start = end - at;
                         length = 0;
                         snip = L"";
                         return true;
                     }
 
                     switch (_next->type) {
-                        case regtionary <std::wstring>::ENTER:
-                            //std::wcout << L"ENTER " << _next->value << std::endl;
-                            current_node = _next;
-                        break;
-                        case regtionary <std::wstring>::DROP:
+                        case regtionary <VALUE>::DROP:
                             //std::wcout << L"DROP TO " << current_node->parent->value << std::endl;
                             current_node = current_node->parent;
                         break;
+                        case regtionary <VALUE>::ENTER:
                         default:
+                            current_node = _next;
                         break;
                     }
 
@@ -109,12 +118,11 @@ class regtionary {
                 node *parent;
 
                 node() {
-                    value = L"ROOT";
                     parent = NULL;
-                    type = SINGLE;
+                    type = ROOT;
                 }
 
-                node(std::wstring _re, std::wstring _value, NODETYPE t) {
+                node(std::wstring _re, VALUE _value, NODETYPE t) {
                     re = _re;
                     regex = new wxRegEx(re.c_str(), wxRE_ADVANCED);
                     value = _value;
@@ -125,9 +133,6 @@ class regtionary {
                     for (auto item : items) {
                         std::wstring padding(depth * 2, ' ');
                         std::cout << padding << (*item).re << std::endl;
-                        if ((*item).value.length() > 0) {
-                            std::cout << padding << "-> " << (*item).value << std::endl;
-                        }
                         if ((*item).items.size() > 0) {
                             (*item).print(depth + 1 );
                         }
@@ -158,8 +163,8 @@ class regtionary {
             root.print(0);
         }
 
-        result scan(const wchar_t *str) {
-            return result(&root, str);
+        result scan(const wchar_t *str, const wchar_t *end = 0) {
+            return result(&root, str, end);
         }
 
         node *get_root() {

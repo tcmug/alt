@@ -1,4 +1,4 @@
-
+---
 
 dependencies:
 
@@ -19,8 +19,17 @@ dependencies:
       command: "tar xvfz lua-5.3.4.tar.gz && mv lua-5.3.4 lua"
     make:
       commands:
-        - make -j 6 macosx INSTALL_TOP=/Users/tmer/dev/alt/3rd
+        - make -j 6 macosx MYCFLAGS=-mmacosx-version-min=10.7 INSTALL_TOP=/Users/tmer/dev/alt/3rd
         - make install INSTALL_TOP=/Users/tmer/dev/alt/3rd
+
+  boost:
+    download:
+    #  url: "https://dl.bintray.com/boostorg/release/1.64.0/source/:boost_1_64_0.tar.gz"
+      #command: "tar xvfz :boost-1.64.0.tar.gz && mv boost-1.64.0 boost"
+    # git:
+    #   url: "https://github.com/boostorg/boost.git"
+    #   checkout: "boost-1.64.0"
+
 target:
   commands:
       - make -j 4

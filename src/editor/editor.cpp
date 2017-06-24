@@ -31,7 +31,7 @@ EditView::EditView(wxFrame* parent) :
     SetBackgroundColour(wxColour(100, 100, 100));
     SetForegroundColour(wxColour(100, 100, 100));
 
-    content.read("test.cpp");
+    content.read("testfile.txt");
 
     scale = 1;
     buffer = NULL;
@@ -44,17 +44,29 @@ EditView::EditView(wxFrame* parent) :
 
     format = new formatting();
 
-    formatting::node *tag = format->insert(L"\\<\\/?\\w+", L"TAG-ENTER", formatting::ENTER);
-    tag->insert(L"\\\"[^\\\"]*\\\"", L"DQ-STRING");
-    tag->insert(L"\\'[^\\']*\\'", L"SQ-STRING");
-    tag->insert(L"([a-z]+)(?=\\W*\\=)", L"ATTR");
-    tag->insert(L"\\>", L"TAG-EXIT", formatting::DROP);
+    color a(wxColour(255,255,255), wxColour(0,0,0));
+    color b(wxColour(255,0,255), wxColour(0,0,100));
+    color c(wxColour(0,255,0), wxColour(0,100,0));
+    color d(wxColour(0,0,255), wxColour(0,0,0));
 
-    auto entry = format->insert(L"\\<\\?(php)?", L"PHP-ENTER", formatting::ENTER);
-    entry->insert(L"\\?\\>", L"PHP-EXIT", formatting::DROP);
-    entry->insert(L"\\$[A-Za-z0-9_]+", L"VAR");
+    formatting::node *tag = format->insert(L"\\<\\/?\\w+", c, formatting::ENTER);
+    tag->insert(L"\\\"[^\\\"]*\\\"", a);
+    tag->insert(L"\\'[^\\']*\\'", b);
+    tag->insert(L"([a-z]+)(?=\\W*\\=)", c);
+    tag->insert(L"\\>", b, formatting::DROP);
 
+    auto entry = format->insert(L"\\<\\?(php)?", c, formatting::ENTER);
+    entry->insert(L"\\?\\>", d, formatting::DROP);
+    entry->insert(L"\\$[A-Za-z0-9_]+", c);
 
+    regtionary <color>::result res = format->scan(content.get_line(5).c_str());
+
+    while (res.next()) {
+        std::wstring str(res.at, 0, res.start);
+        std::cout << str << "||" << res.snip << "#" << res.current_node->value.background.GetRGB() << "/" << res.current_node->value.foreground.GetRGB() << "#";
+    }
+
+    std::cout << std::endl;
 }
 
 
@@ -90,8 +102,32 @@ void EditView::update() {
 
     for (std::size_t ln = 0; ln < content.number_of_lines(); ln++) {
 
-        std::wstring str = content.get_line(ln);
-        wxSize extents = tx.get_extents(str);
+        const std::wstring &xstr  = content.get_content();
+
+        const wchar_t *line_start = xstr.c_str() + content[ln].start;
+        const wchar_t *line_end   = line_start + content[ln].length;
+
+        regtionary <color>::result res = format->scan(line_start, line_end);
+
+        wxSize extents;
+        int x = 0;
+
+       // std::cout << ln << " " << std::endl;
+
+        while (res.next()) {
+            std::wstring str(res.at, 0, res.start);
+            wxSize e1 = tx.get_extents(str);
+            wxSize e2 = tx.get_extents(res.snip);
+            x += e1.GetWidth();
+            x += e2.GetWidth();
+            extents.SetHeight(e1.GetHeight());
+            //std::cout << str << "||" << res.snip << "#" << res.current_node->value.background.GetRGB() << "/" << res.current_node->value.foreground.GetRGB() << "#";
+        }
+
+        extents.SetWidth(x);
+
+        std::cout << std::endl;
+        // std::cout << "ST: " << (unsigned long)res.current_node << std::endl;
 
         tx.max_line_height = 0;
         tx.position.x = 1;
@@ -99,12 +135,10 @@ void EditView::update() {
 
         tx.max_line_height = extents.GetHeight();
         tx.max_line_width = std::max(tx.max_line_width, tx.screen.x + extents.GetWidth());
-
-        line_states.push_back(line_state(tx.screen, extents));
+        line_states.push_back(line_state(tx.screen, extents, res.current_node));
 
         tx.position.y++;
         tx.screen.y += extents.GetHeight();
-
     }
 
     canvas_size = wxSize(tx.max_line_width, tx.screen.y);
@@ -125,21 +159,48 @@ void EditView::redraw(wxDC &dc) {
 
     update();
 
+    const std::wstring &xstr = content.get_content();
+
     for (std::size_t ln = 0; ln < content.number_of_lines(); ln++) {
 
         if (line_states[ln].screen.y >= tx.viewport_position.y - line_states[ln].extents.GetHeight()) {
 
-            std::wstring str = content.get_line(ln);
             wxSize extents = line_states[ln].extents;
+
+            const wchar_t *line_start = xstr.c_str() + content[ln].start;
+            const wchar_t *line_end   = line_start + content[ln].length;
+
+            regtionary <color>::result res = format->scan(line_start, line_end);
+
+            if (ln > 0) {
+                res.current_node = line_states[ln-1].current_node;
+            }
 
             tx.max_line_height = 0;
             tx.position.x = 1;
             tx.screen = line_states[ln].screen;
 
             tx.max_line_height = extents.GetHeight();
-
-            tx.print(str);
-
+            int i = 0;
+            while (res.next()) {
+                i++;
+                std::wstring str(res.at, 0, res.start);
+                std::cout << str << std::endl;
+                if (res.current_node) {
+                    tx.dc->SetTextBackground(res.current_node->value.background);
+                    tx.dc->SetTextForeground(res.current_node->value.foreground);
+                }
+                if (str.length() > 0) {
+                    std::cout << "real ln " << ln << ":" << i << " " << str << std::endl;
+                    tx.print(str);
+                }
+                if (res.snip.length() > 0) {
+                    std::cout << "snip ln " << ln << ":" << i << " " << str << std::endl;
+                    tx.print(res.snip);
+                }
+            }
+            std::cout << std::endl;
+            //std::cout << ln << ": " << i << " " << res.start << std::endl;
             tx.max_line_width = std::max(tx.max_line_width, tx.screen.x);
 
             tx.position.y++;
@@ -204,10 +265,10 @@ void EditView::fix_carets() {
 
     carets.erase(unique(carets.begin(), carets.end(), compareCaret), carets.end());
 
-    int i = 1;
-    for (auto &caret : carets) {
-        std::cout << i++ << "\t" << caret->position << std::endl;
-    }
+    // int i = 1;
+    // for (auto &caret : carets) {
+    //     std::cout << i++ << "\t" << caret->position << std::endl;
+    // }
 }
 
 
@@ -480,7 +541,7 @@ void EditView::erase() {
         if (caret->position <= 0) {
             continue;
         }
-        std::cout << caret->position << std::endl;
+        //std::cout << caret->position << std::endl;
         content.erase(caret->position - 1, 1);
         editor_event event(editor_event::ERASE_STRING, caret->position - 1);
         event.string = '?';

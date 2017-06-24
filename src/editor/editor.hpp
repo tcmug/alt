@@ -23,11 +23,12 @@ class line_state {
 
     public:
 
-        line_state(wxPoint _screen, wxSize _extents): screen(_screen), extents(_extents) {
+        line_state(wxPoint _screen, wxSize _extents, formatting::node *_node): screen(_screen), extents(_extents), current_node(_node) {
         }
 
         wxPoint screen;
         wxSize extents;
+        formatting::node *current_node;
 };
 
 

@@ -11,6 +11,7 @@
 #include <sstream>
 #include <algorithm>
 
+
 void file::read(std::string file) {
     std::wifstream t(file.c_str());
 
@@ -26,39 +27,6 @@ void file::read(std::string file) {
     }
 
     scan_lines(0);
-
-    for (int i = 0; i < lines.size(); i++) {
-        std::wcout << get_line(i) << std::endl;
-    }
-
-    for (int i = 0; i < content.length(); i++) {
-        std::cout << i << " maps to " << position_to_line(i) << std::endl;
-    }
-
-    for (int i = 0; i < lines.size(); i++) {
-        std::wcout << i << "\t" << get_line(i) << std::endl;
-    }
-
-    std::cout << position_to_line(3) << std::endl;
-    insert(4, L"AND YOU!");
-    insert(3, L"HEY THERE!");
-
-    for (int i = 0; i < lines.size(); i++) {
-        std::wcout << i << "\t" << get_line(i) << std::endl;
-    }
-
-    std::size_t pos = content.find(L"jack");
-    if (pos != std::wstring::npos) {
-        erase(pos, 4);
-        content.insert(pos, L"JACK");
-        erase(content.find(L"bob\n"), 4);
-    }
-
-    for (int i = 0; i < lines.size(); i++) {
-        std::wcout << i << "\t" << get_line(i) << std::endl;
-    }
-
-    std::wcout << "done" << std::endl;
 
 }
 
@@ -80,7 +48,6 @@ void file::scan_lines(std::size_t s) {
         // Insert position is within content - find the first line affected.
         lines.erase(lines.begin() + ln, lines.end());
         start = lines.end()->start;
-//        std::cout << "erase " << ln << " " << lines.size() << std::endl;
     }
     else {
         // Clear all lines.
@@ -92,7 +59,6 @@ void file::scan_lines(std::size_t s) {
     eol.push_back(L'\n');
     while ((found = content.find(eol, start)) != std::string::npos) {
         lines.push_back(line(start, found - start, ln));
- //       std::cout << start << "->" << found << std::endl;
         start = found + 1;
         ln++;
     }
@@ -114,15 +80,12 @@ void file::erase(std::size_t pos, std::size_t len) {
 
 const file::line &file::operator[] (std::size_t ln) {
     file::line &rln = lines[ln];
-    //rln.pointer = &content.c_str()[rln.start];
     return rln;
 }
 
 std::size_t file::number_of_lines() {
     return lines.size();
 }
-
-
 
 
 std::size_t file::position_to_column(std::size_t pos) {
@@ -132,7 +95,6 @@ std::size_t file::position_to_column(std::size_t pos) {
     }
     return std::wstring::npos;
 }
-
 
 
 std::size_t file::position_to_line(std::size_t pos) {
@@ -148,4 +110,6 @@ std::wstring file::get_line(std::size_t ln) {
     return content.substr(lines[ln].start, lines[ln].length);
 }
 
-
+const std::wstring &file::get_content() {
+    return content;
+}

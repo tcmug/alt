@@ -16,122 +16,7 @@ class alt_ide_app: public wxApp {
 
 };
 
-
 wxIMPLEMENT_APP(alt_ide_app);
-
-
-/*
-
-
-c#include "misc/state.hpp"
-
-class root_state: public state <char> {
-
-	public:
-
-		root_state() {
-		}
-
-		virtual void enter(state_stack_type *s) {
-		}
-
-		virtual void exit(state_stack_type *s) {
-		}
-
-		virtual void handle_input(state_stack_type *s, char c);
-
-		virtual const char *get_color() const {
-			return "\033[0m";
-		}
-
-};
-
-
-
-class tag: public root_state {
-
-	private:
-		char previous;
-
-	public:
-
-		tag() {
-			previous = 0;
-		}
-
-		virtual void enter(state_stack_type *s) {
-		}
-
-		virtual void exit(state_stack_type *s) {
-		}
-
-		virtual void handle_input(state_stack_type *s, char c);
-
-		virtual const char *get_color() const {
-			return "\033[32m";
-		}
-
-};
-
-
-class quote: public root_state {
-
-	private:
-		char previous;
-		int length;
-
-	public:
-
-		quote() {
-			length = 0;
-			previous = 0;
-		}
-
-		virtual void enter(state_stack_type *s) {
-			length = 0;
-			previous = 0;
-		}
-
-		virtual void exit(state_stack_type *s) {
-		}
-
-		virtual void handle_input(state_stack_type *s, char c);
-
-		virtual const char *get_color() const {
-			return "\033[31m";
-		}
-
-};
-
-
-
-void root_state::handle_input(state_stack_type *s, char c) {
-	if (c == '<') {
-		s->push(new tag());
-	}
-}
-
-
-void tag::handle_input(state_stack_type *s, char c) {
-	if (c == '"') {
-		s->push(new quote());
-	}
-	else if (previous == '>') {
-		delete s->pop();
-	}
-	previous = c;
-}
-
-
-
-void quote::handle_input(state_stack_type *s, char c) {
-	if (previous == '"' && length > 1) {
-		delete s->pop();
-	}
-	length++;
-	previous = c;
-}
-*/
 
 #include <wx/regex.h>
 #include <string>
@@ -139,45 +24,140 @@ void quote::handle_input(state_stack_type *s, char c) {
 
 #include "misc/regtionary.hpp"
 
+class instr;
+
+typedef	regtionary <instr*> regtest;
+
+class instr {
+
+	public:
+
+		instr() {
+		}
+
+		virtual void apply(const regtest::result &res) {
+			std::wstring str(res.at, 0, res.start);
+			std::cout << str << res.snip;
+		}
+};
+
+
+class newline: public instr {
+
+	public:
+
+		newline() {
+		}
+
+		virtual void apply(const regtest::result &res) {
+			std::wstring str(res.at, 0, res.start);
+			std::cout << str << std::endl;
+		}
+
+};
+
+class var: public instr {
+
+	public:
+
+		var() {
+		}
+
+		virtual void apply(const regtest::result &res) {
+			std::wstring str(res.at, 0, res.start);
+			std::cout << str;
+			std::cout << "\e[93m" << res.snip << "\e[0m";
+		}
+
+};
+
+
+class op: public instr {
+
+	public:
+
+		op() {
+		}
+
+		virtual void apply(const regtest::result &res) {
+			std::wstring str(res.at, 0, res.start);
+			std::cout << str;
+			std::cout << "\e[92m" << res.snip << "\e[0m";
+		}
+
+};
+
+
+class arr: public instr {
+
+	public:
+
+		arr() {
+		}
+
+		virtual void apply(const regtest::result &res) {
+			std::wstring str(res.at, 0, res.start);
+			std::cout << str;
+			std::cout << "\e[91m" << res.snip << "\e[0m";
+		}
+
+
+};
+
+
+class stringi: public instr {
+
+	public:
+
+		stringi() {
+		}
+
+		virtual void apply(const regtest::result &res) {
+			std::wstring str(res.at, 0, res.start);
+			std::cout << str;
+			std::cout << "\e[90m" << res.snip << "\e[0m";
+		}
+
+
+};
 
 
 bool alt_ide_app::OnInit() {
 
-	regtionary <std::wstring> dic;
+	regtest dic;
 
-	auto tag = dic.insert(L"\\<\\/?\\w+", L"TAG-ENTER", regtionary<std::wstring>::ENTER);
-	tag->insert(L"\\\"[^\\\"]*\\\"", L"DQ-STRING");
-	tag->insert(L"\\'[^\\']*\\'", L"SQ-STRING");
-	tag->insert(L"([a-z]+)(?=\\W*\\=)", L"ATTR");
-	tag->insert(L"\\>", L"TAG-EXIT", regtionary<std::wstring>::DROP);
+	dic.root.value = new instr();
+	dic.insert(L"[0-9]+", new var());
+	dic.insert(L"\\$[a-zA-Z0-9]+", new var());
+	dic.insert(L"->", new arr());
+	dic.insert(L"[-+*=\\/]", new op());
+	// auto tag = dic.insert(L"\\<\\/?\\w+", L"TAG-ENTER", regtionary<std::wstring>::ENTER);
+	dic.insert(L"\\\"[^\\\"]*\\\"", new stringi());
+	dic.insert(L"\\'[^\\']*\\'", new stringi());
+	// tag->insert(L"([a-z]+)(?=\\W*\\=)", L"ATTR");
+	// tag->insert(L"\\>", L"TAG-EXIT", regtionary<std::wstring>::DROP);
 
-	auto entry = dic.insert(L"\\<\\?(php)?", L"PHP-ENTER", regtionary<std::wstring>::ENTER);
-	entry->insert(L"\\?\\>", L"PHP-EXIT", regtionary<std::wstring>::DROP);
-	entry->insert(L"\\$[A-Za-z0-9_]+", L"VAR");
+	// auto entry = dic.insert(L"\\<\\?(php)?", L"PHP-ENTER", regtionary<std::wstring>::ENTER);
+	// entry->insert(L"\\?\\>", L"PHP-EXIT", regtionary<std::wstring>::DROP);
 
 	dic.print();
 
 	std::cout << "***" << std::endl;
 
-	const wchar_t *code = L"<tag><another><third><?php if ($then) { $name=123; $Blah_x =4; } ?><html yes single='single' other= \"hop\" id =\"t<>his\"><? if ($var) ?></html>";
+	const wchar_t *code = L"Hello -> world!\nThere should be\n\"SIX\" (6) $lines->count. And 'so' on. 300.\nx = 2 + 3\n'This should be\na multiline string' OK?";
 	std::wstring result;
 
-	for (int i = 0; i < 1; i++) {
-		regtionary <std::wstring>::result res = dic.scan(code);
+	regtest::result res = dic.scan(code);
+	std::cout << "***" << std::endl;
 
-		while (res.next()) {
-			std::wstring ln(res.at);
-			if (res.start > 0) {
-				result += ln.substr(0, res.start);
-				result += L"|";
-			}
-			if (res.snip.length() > 0) {
-				result += res.snip;
-				result += L"||";
-			}
-		}
-
+	while (res.next()) {
+		res.current_node->value->apply(res);
 	}
+
+	std::wcout << std::endl;
+
+	return 0;
+
 	//if (result == code) {
 	std::wcout << code << std::endl;
 	std::wcout << result << std::endl;

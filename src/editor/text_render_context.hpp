@@ -5,7 +5,26 @@
 #include "state.hpp"
 #include "../misc/regtionary.hpp"
 
-typedef regtionary <std::wstring> formatting;
+
+class color {
+    public:
+
+        color() {
+            foreground = wxColour(255, 255, 255);
+            background = wxColour(0, 0, 0);
+        }
+
+        color(wxColour &fg, wxColour &bg): foreground(fg), background(bg) {
+        }
+
+        color(wxColour fg, wxColour bg): foreground(fg), background(bg) {
+        }
+
+        wxColour foreground;
+        wxColour background;
+};
+
+typedef regtionary <color> formatting;
 
 class text_render_context {
     public:

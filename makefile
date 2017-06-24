@@ -3,9 +3,10 @@
 CC = g++
 COMMON_FLAGS = -Wno-c++11-extensions -O3 -mmacosx-version-min=10.7 -arch x86_64
 
+ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
 # LUA CONFIG
-HEADERS_DIR = /Users/tmer/dev/alt/3rd/include
-LIBS_DIR = /Users/tmer/dev/alt/3rd/lib
+HEADERS_DIR = $(ROOT_DIR)/3rd/include
+LIBS_DIR = $(ROOT_DIR)/3rd/lib
 LUA_LDFLAGS = -llua
 LUA_CFLAGS =
 

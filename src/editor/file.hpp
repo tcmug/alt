@@ -31,6 +31,7 @@ class file {
 
         void read(std::string file);
         std::wstring get_line(std::size_t pos);
+        const std::wstring &get_content();
 
         std::size_t position_to_line(std::size_t pos);
         std::size_t position_to_column(std::size_t pos);
