@@ -12,7 +12,11 @@ class editor_event:
             INSERT_LINE,
             INSERT_STRING,
             ERASE_LINE,
-            ERASE_STRING
+            ERASE_STRING,
+            MOVE_RIGHT,
+            MOVE_LEFT,
+            MOVE_UP,
+            MOVE_DOWN,
         };
 
         editor_event(TYPE t, std::size_t pos): type(t), position(pos) {

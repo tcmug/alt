@@ -23,7 +23,7 @@ ide::ide():
 	wxFrame(
 		NULL,
 		wxID_ANY,
-		wxT("Alt"),
+		wxT("Variant"),
 		wxDefaultPosition,
 		wxSize(420, 300),
 		wxDEFAULT_FRAME_STYLE | wxNO_FULL_REPAINT_ON_RESIZE
@@ -31,7 +31,7 @@ ide::ide():
 {
 	//SetIcon(wxICON(sample));
 	CreateStatusBar(2);
-	SetStatusText(wxT("Alt"), 1);
+	SetStatusText(wxT("Variant"), 1);
 	SetStatusText(wxT("..."), 0);
 
     EditView *file = new EditView( (wxFrame*) this );

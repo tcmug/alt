@@ -19,18 +19,6 @@
 using alt::ide;
 
 
-class line_state {
-
-    public:
-
-        line_state(wxPoint _screen, wxSize _extents, formatting::node *_node): screen(_screen), extents(_extents), current_node(_node) {
-        }
-
-        wxPoint screen;
-        wxSize extents;
-        formatting::node *current_node;
-};
-
 
 class EditView : public wxScrolledWindow, public dirtyable, public subject {
 

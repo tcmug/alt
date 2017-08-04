@@ -29,7 +29,7 @@ EditView::EditView(wxFrame* parent) :
     wxScrolledWindow(parent) {
     SetCursor(wxCursor(wxCURSOR_IBEAM));
     SetBackgroundColour(wxColour(100, 100, 100));
-    SetForegroundColour(wxColour(100, 100, 100));
+    SetForegroundColour(wxColour(255, 255, 255));
 
     content.read("testfile.txt");
 
@@ -44,23 +44,30 @@ EditView::EditView(wxFrame* parent) :
 
     format = new formatting();
 
-    color a(wxColour(255,255,255), wxColour(0,0,0));
-    color b(wxColour(255,0,255), wxColour(0,0,100));
-    color c(wxColour(0,255,0), wxColour(0,100,0));
-    color d(wxColour(0,0,255), wxColour(0,0,0));
+    color c1(wxColour(100, 100, 100), wxColour(100, 60, 100));
+    color c2(wxColour(255, 100, 100), wxColour(100, 100, 100));
+    color c3(wxColour(100, 255, 100), wxColour(100, 60, 100));
+    color c4(wxColour(100, 100, 255), wxColour(100, 100, 100));
+    color c5(wxColour(255, 100, 255), wxColour(100, 100, 100));
+    color c6(wxColour(255, 100, 255), wxColour(100, 100, 100));
+    color c7(wxColour(100, 100, 255), wxColour(100, 100, 100));
+    color c8(wxColour(255, 40, 40), wxColour(100, 100, 100));
 
-    formatting::node *tag = format->insert(L"\\<\\/?\\w+", c, formatting::ENTER);
-    tag->insert(L"\\\"[^\\\"]*\\\"", a);
-    tag->insert(L"\\'[^\\']*\\'", b);
-    tag->insert(L"([a-z]+)(?=\\W*\\=)", c);
-    tag->insert(L"\\>", b, formatting::DROP);
+    format->insert(L"[0-9]+", c1);
+    format->insert(L"->", c3);
+    format->insert(L"[-+*=\\/]", c4);
 
-    auto entry = format->insert(L"\\<\\?(php)?", c, formatting::ENTER);
-    entry->insert(L"\\?\\>", d, formatting::DROP);
-    entry->insert(L"\\$[A-Za-z0-9_]+", c);
+    formatting::node *tag = format->insert(L"\\<!--", c8, formatting::ENTER);
+    tag->insert(L"-->", c8, formatting::DROP);
 
-    regtionary <color>::result res = format->scan(content.get_line(5).c_str());
+    formatting::node *php = format->insert(L"\\<\\?php", c8, formatting::ENTER);
+    php->insert(L"\\$[a-zA-Z0-9]+", c2);
+    php->insert(L"\\?>", c8, formatting::DROP);
+    php->insert(L"\\\"[^\\\"]*\\\"", c6);
+    php->insert(L"\\'[^\\']*\\'", c7);
 
+    std::cout << "DUMPING" << std::endl;
+    regtionary <color>::result res = format->scan(content.get_content().c_str());
     while (res.next()) {
         std::wstring str(res.at, 0, res.start);
         std::cout << str << "||" << res.snip << "#" << res.current_node->value.background.GetRGB() << "/" << res.current_node->value.foreground.GetRGB() << "#";
@@ -88,60 +95,6 @@ wxSize EditView::render(wxDC &dc) {
 
 void EditView::update() {
 
-    wxClientDC dc(this);
-
-    dc.SetFont(font);
-    dc.SetUserScale(scale, scale);
-
-    text_render_context tx(&dc, format);
-
-    tx.viewport_position.y = GetScrollPos(wxVERTICAL) / scale;
-    tx.viewport_extents = dc.GetSize();
-
-    line_states.clear();
-
-    for (std::size_t ln = 0; ln < content.number_of_lines(); ln++) {
-
-        const std::wstring &xstr  = content.get_content();
-
-        const wchar_t *line_start = xstr.c_str() + content[ln].start;
-        const wchar_t *line_end   = line_start + content[ln].length;
-
-        regtionary <color>::result res = format->scan(line_start, line_end);
-
-        wxSize extents;
-        int x = 0;
-
-       // std::cout << ln << " " << std::endl;
-
-        while (res.next()) {
-            std::wstring str(res.at, 0, res.start);
-            wxSize e1 = tx.get_extents(str);
-            wxSize e2 = tx.get_extents(res.snip);
-            x += e1.GetWidth();
-            x += e2.GetWidth();
-            extents.SetHeight(e1.GetHeight());
-            //std::cout << str << "||" << res.snip << "#" << res.current_node->value.background.GetRGB() << "/" << res.current_node->value.foreground.GetRGB() << "#";
-        }
-
-        extents.SetWidth(x);
-
-        std::cout << std::endl;
-        // std::cout << "ST: " << (unsigned long)res.current_node << std::endl;
-
-        tx.max_line_height = 0;
-        tx.position.x = 1;
-        tx.screen.x = 0;
-
-        tx.max_line_height = extents.GetHeight();
-        tx.max_line_width = std::max(tx.max_line_width, tx.screen.x + extents.GetWidth());
-        line_states.push_back(line_state(tx.screen, extents, res.current_node));
-
-        tx.position.y++;
-        tx.screen.y += extents.GetHeight();
-    }
-
-    canvas_size = wxSize(tx.max_line_width, tx.screen.y);
 }
 
 
@@ -157,59 +110,16 @@ void EditView::redraw(wxDC &dc) {
     tx.viewport_position.y = GetScrollPos(wxVERTICAL) / scale;
     tx.viewport_extents = dc.GetSize();
 
-    update();
-
     const std::wstring &xstr = content.get_content();
 
-    for (std::size_t ln = 0; ln < content.number_of_lines(); ln++) {
+    auto res = format->scan(xstr.c_str(), xstr.c_str() + xstr.length());
 
-        if (line_states[ln].screen.y >= tx.viewport_position.y - line_states[ln].extents.GetHeight()) {
+    line_states.clear();
+    scan_context ctx(&line_states, &res, &tx);
 
-            wxSize extents = line_states[ln].extents;
-
-            const wchar_t *line_start = xstr.c_str() + content[ln].start;
-            const wchar_t *line_end   = line_start + content[ln].length;
-
-            regtionary <color>::result res = format->scan(line_start, line_end);
-
-            if (ln > 0) {
-                res.current_node = line_states[ln-1].current_node;
-            }
-
-            tx.max_line_height = 0;
-            tx.position.x = 1;
-            tx.screen = line_states[ln].screen;
-
-            tx.max_line_height = extents.GetHeight();
-            int i = 0;
-            while (res.next()) {
-                i++;
-                std::wstring str(res.at, 0, res.start);
-                std::cout << str << std::endl;
-                if (res.current_node) {
-                    tx.dc->SetTextBackground(res.current_node->value.background);
-                    tx.dc->SetTextForeground(res.current_node->value.foreground);
-                }
-                if (str.length() > 0) {
-                    std::cout << "real ln " << ln << ":" << i << " " << str << std::endl;
-                    tx.print(str);
-                }
-                if (res.snip.length() > 0) {
-                    std::cout << "snip ln " << ln << ":" << i << " " << str << std::endl;
-                    tx.print(res.snip);
-                }
-            }
-            std::cout << std::endl;
-            //std::cout << ln << ": " << i << " " << res.start << std::endl;
-            tx.max_line_width = std::max(tx.max_line_width, tx.screen.x);
-
-            tx.position.y++;
-            tx.screen.y += extents.GetHeight();
-        }
-
-        if (line_states[ln].screen.y > tx.viewport_position.y + tx.viewport_extents.GetHeight()) {
-            break;
-        }
+    while (res.next()) {
+        res.current_node->value.print(&ctx);
+        // ctx.active = res.current_node;
     }
 
     for (auto &caret : carets) {
@@ -225,6 +135,8 @@ void EditView::redraw(wxDC &dc) {
         }
         caret->render(tx);
     }
+
+    canvas_size = wxSize(tx.max_line_width, tx.screen.y);
 }
 
 
@@ -238,37 +150,10 @@ bool compareCaret(text_caret *a, text_caret *b) {
 
 
 void EditView::fix_carets() {
-
-    // for (auto i = carets.begin(); i != carets.end();) {
-    //     auto &caret = *i;
-    //     if (caret->position.y > lines.size())
-    //         i = carets.erase(i);
-    //     else
-    //         i++;
-    // }
-
     // Sort carets in the expected format (top to bottom).
-
     std::sort(carets.begin(), carets.end(), compareCaret);
-
     // And get rid of dupes.
-    // for (auto i = carets.begin() + 1; i != carets.end(); i++) {
-    //     if ((*i)->position == (*(i-1))->position) {
-    //         std::cout << (*i)->position << " " << (*(i-1))->position << std::endl;
-    //         //i = carets.erase(i);
-    //     }
-    // }
-    // carets.erase(
-    //     unique(carets.begin(), carets.end()),
-    //     carets.end()
-    // );
-
     carets.erase(unique(carets.begin(), carets.end(), compareCaret), carets.end());
-
-    // int i = 1;
-    // for (auto &caret : carets) {
-    //     std::cout << i++ << "\t" << caret->position << std::endl;
-    // }
 }
 
 
@@ -292,6 +177,11 @@ void EditView::OnLeftDown( wxMouseEvent& event ) {
     screen.y += GetScrollPos(wxVERTICAL) / scale;
 
     for (std::size_t ln = 0; ln < content.number_of_lines(); ln++) {
+
+        if (ln >= line_states.size()) {
+            break;
+        }
+
         if ((screen.y > line_states[ln].screen.y) &&
             (screen.y < line_states[ln].screen.y + line_states[ln].extents.GetHeight())) {
 
@@ -366,23 +256,15 @@ void EditView::OnChar(wxKeyEvent& event) {
         switch (uc) {
 
             case 127:
-                // Backspace.
                 erase();
             break;
 
-            case 9: {
-                // Tab.
+            case 9:
                 insert(L"\t");
-            }
             break;
 
-            case 13: {
-                // Return.
-                //insert_new_line();
+            case 13:
                 insert(L"\n");
-                // std::wstring str(L"\n");
-                // insert(str);
-            }
             break;
 
             default:
@@ -421,70 +303,31 @@ void EditView::OnChar(wxKeyEvent& event) {
             break;
 
             case WXK_LEFT:
-                /*for (auto &caret : carets) {
-                    if (caret->position.x > 1) {
-                        caret->position.x--;
-                    }
-                    else {
-                        if (caret->position.y > 1) {
-                            caret->position.y--;
-                            caret->position.x = lines[caret->position.y - 1].get_length() + 1;
-                        }
-                        else {
-                            caret->position.x = 1;
-                        }
-                    }
-                    caret->screen = lc_to_trc(caret->position).screen;
+                for (auto &caret : carets) {
+                    editor_event event(editor_event::MOVE_LEFT, caret->position);
+                    notify(&event);
                 }
-                */
             break;
 
             case WXK_RIGHT:
-            /*
                 for (auto &caret : carets) {
-                    if (caret->position.x < lines[caret->position.y - 1].get_length() + 1) {
-                        caret->position.x++;
-                    }
-                    else {
-                        if (caret->position.y < lines.size()) {
-                            caret->position.y++;
-                            caret->position.x = 1;
-                        }
-                        else {
-                            caret->position.x = lines[caret->position.y - 1].get_length() + 1;
-                        }
-                    }
-                    caret->screen = lc_to_trc(caret->position).screen;
+                    editor_event event(editor_event::MOVE_RIGHT, caret->position);
+                    notify(&event);
                 }
-                */
             break;
 
             case WXK_UP:
-            /*
                 for (auto &caret : carets) {
-                    if (caret->position.y > 1) {
-                        caret->position.y--;
-                        if (caret->position.x > lines[caret->position.y - 1].get_length() + 1) {
-                            caret->position.x = lines[caret->position.y - 1].get_length() + 1;
-                        }
-                    }
-                    caret->screen = lc_to_trc(caret->position).screen;
+                    editor_event event(editor_event::MOVE_UP, caret->position);
+                    notify(&event);
                 }
-                */
             break;
 
             case WXK_DOWN:
-            /*
                 for (auto &caret : carets) {
-                    if (caret->position.y < lines.size()) {
-                        caret->position.y++;
-                        if (caret->position.x > lines[caret->position.y - 1].get_length() + 1) {
-                            caret->position.x = lines[caret->position.y - 1].get_length() + 1;
-                        }
-                    }
-                    caret->screen = lc_to_trc(caret->position).screen;
+                    editor_event event(editor_event::MOVE_DOWN, caret->position);
+                    notify(&event);
                 }
-                */
             break;
 
         }

@@ -34,7 +34,7 @@ class regtionary {
                     length(0),
                     hits(0) {
                     if (!end) {
-                        end = at + wcslen(at);
+                        end = _at + wcslen(_at);
                     }
                 }
 
@@ -55,24 +55,28 @@ class regtionary {
                     if (current_node->type == regtionary <VALUE>::SINGLE) {
                         current_node = current_node->parent;
                     }
+                    else if (current_node->type == regtionary <VALUE>::DROP) {
+                        current_node = current_node->parent->parent;
+                    }
+
 
                     at = at + (start + length);
 
-                    if (*at == 0) {
+                    if (at >= end || *at == 0) {
                         return false;
                     }
 
                     start = 100000;
                     length = 0;
                     node *_next = NULL;
+                    int max_length = end - at;
 
                     for (auto item : current_node->items) {
                         if ((*item).regex->Matches(at)) {
                             size_t s, l;
                             (*item).regex->GetMatch(&s, &l, 0);
-                            if (s < start) {
-                                snip = at;
-                                snip = snip.substr(s, l);
+                            // If this fails, replace <= with <
+                            if (s < start && s <= max_length && s <= max_length && (s + l) <= max_length) {
                                 _next = item;
                                 start = s;
                                 length = l;
@@ -88,16 +92,10 @@ class regtionary {
                         return true;
                     }
 
-                    switch (_next->type) {
-                        case regtionary <VALUE>::DROP:
-                            //std::wcout << L"DROP TO " << current_node->parent->value << std::endl;
-                            current_node = current_node->parent;
-                        break;
-                        case regtionary <VALUE>::ENTER:
-                        default:
-                            current_node = _next;
-                        break;
-                    }
+                    snip = at;
+                    snip = snip.substr(start, length);
+
+                    current_node = _next;
 
                     return true;
                 }

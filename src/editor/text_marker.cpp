@@ -17,7 +17,6 @@ void text_marker::update(wxPoint start, wxPoint end) {
 
 
 void text_marker::render(text_render_context &tx) const {
-
     tx.dc->SetBrush(*wxTRANSPARENT_BRUSH);
     tx.dc->DrawRoundedRectangle(
         screen.x - 2, screen.y,

@@ -42,7 +42,7 @@ all: mini
 
 # Link
 
-alt: $(MAIN_OBJ) $(CORE_OBJ) $(EDITOR_OBJ) $(MISC_OBJ)
+variant: $(MAIN_OBJ) $(CORE_OBJ) $(EDITOR_OBJ) $(MISC_OBJ)
 	$(CC) $(LDFLAGS) -o $@ $^
 
 # Core stuff
@@ -61,13 +61,13 @@ tmp/misc_%.o: src/misc/%.cpp
 # Core stuff
 
 clean:
-	rm -f alt docs/* tmp/*
+	rm -f variant docs/* tmp/*
 
-mini: alt
-	strip alt ; SetFile -t APPL alt
+mini: variant
+	strip variant ; SetFile -t APPL Variant
 
 dist: mini
-	upx alt
+	upx variant
 
 test: $(MISC_OBJ)
 	$(CC) test.cpp $(LDFLAGS) -o $@ $^

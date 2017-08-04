@@ -5,6 +5,7 @@
 event::~event() {
 }
 
+
 void event::consume() {
     consumed = true;
 }

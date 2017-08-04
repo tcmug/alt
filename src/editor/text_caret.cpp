@@ -41,9 +41,54 @@ void text_caret::report() {
 
 
 void text_caret::notify(event *_event) {
+
     editor_event *event = static_cast<editor_event*>(_event);
     EditView *source = static_cast<EditView*>(event->source);
+
     switch (event->type) {
+
+        case editor_event::MOVE_LEFT:
+            if (position == event->position) {
+                if (position > 0) {
+                    position--;
+                }
+                mark_dirty();
+            }
+        break;
+
+        case editor_event::MOVE_RIGHT:
+            if (position == event->position) {
+                if (position < source->content.get_length() - 1) {
+                    position++;
+                }
+                mark_dirty();
+            }
+        break;
+
+        case editor_event::MOVE_UP:
+            if (position == event->position) {
+                std::size_t line = source->content.position_to_line(position);
+                std::size_t col = source->content.position_to_column(position);
+                if (line > 0) {
+                    line--;
+                    position = source->content.line_to_position(line) + std::min(col, source->content.get_line_length(line));
+                    mark_dirty();
+                }
+            }
+        break;
+
+        case editor_event::MOVE_DOWN:
+            if (position == event->position) {
+                std::size_t line = source->content.position_to_line(position);
+                std::size_t col = source->content.position_to_column(position);
+                if (line < source->content.number_of_lines() - 1) {
+                    line++;
+                    position = source->content.line_to_position(line) + std::min(col, source->content.get_line_length(line));
+                    mark_dirty();
+                }
+            }
+        break;
+
         case editor_event::ERASE_STRING:
             if (position >= event->position) {
                 if (position > event->string.length())

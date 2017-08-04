@@ -88,6 +88,19 @@ std::size_t file::number_of_lines() {
 }
 
 
+std::size_t file::get_length() {
+    return content.length();
+}
+
+
+std::size_t file::line_to_position(std::size_t line) {
+    return lines[line].start;
+}
+
+std::size_t file::get_line_length(std::size_t line) {
+    return lines[line].length;
+}
+
 std::size_t file::position_to_column(std::size_t pos) {
     auto it = std::find_if(lines.begin(), lines.end(), position_in_file(pos));
     if (it != lines.end()) {
