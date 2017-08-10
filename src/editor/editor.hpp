@@ -66,6 +66,7 @@ class EditView : public wxScrolledWindow, public dirtyable, public subject {
         void redraw(wxDC &dc);
         void update();
 
+        void notify(event *event);
     public:
 
         void clear_markers();

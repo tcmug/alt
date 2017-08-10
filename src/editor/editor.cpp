@@ -224,22 +224,22 @@ void EditView::OnMotion( wxMouseEvent& event ) {
         return;
     }
 
-    // wxClientDC dc(this);
-    // wxPoint screen = event.GetLogicalPosition(dc);
+    wxClientDC dc(this);
+    wxPoint screen = event.GetLogicalPosition(dc);
 
-    // screen.x /= scale;
-    // screen.y /= scale;
+    screen.x /= scale;
+    screen.y /= scale;
 
-    // screen.x += GetScrollPos(wxHORIZONTAL) / scale;
-    // screen.y += GetScrollPos(wxVERTICAL) / scale;
+    screen.x += GetScrollPos(wxHORIZONTAL) / scale;
+    screen.y += GetScrollPos(wxVERTICAL) / scale;
 
-    // for (std::size_t ln = 0; ln < content.number_of_lines(); ln++) {
-    //     if ((screen.y > line_states[ln].screen.y) &&
-    //         (screen.y < line_states[ln].screen.y + line_states[ln].extents.GetHeight())) {
-    //         carets.push_back(new text_caret(0, line_states[ln].screen, line_states[ln].extents));
-    //         break;
-    //     }
-    // }
+    for (std::size_t ln = 0; ln < content.number_of_lines(); ln++) {
+        if ((screen.y > line_states[ln].screen.y) &&
+            (screen.y < line_states[ln].screen.y + line_states[ln].extents.GetHeight())) {
+            carets.push_back(new text_caret(content[ln].start, line_states[ln].screen, line_states[ln].extents));
+            break;
+        }
+    }
 
     Refresh();
 }
@@ -416,4 +416,9 @@ void EditView::clear_carets() {
         delete caret;
     }
     carets.clear();
+}
+
+
+void EditView::notify(event *event) {
+    subject::notify(event);
 }

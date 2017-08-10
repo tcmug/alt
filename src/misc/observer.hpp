@@ -60,7 +60,7 @@ class subject {
     public:
 
         virtual ~subject();
-        void notify(event *event);
+        virtual void notify(event *event);
 
 };
 
