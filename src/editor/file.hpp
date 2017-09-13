@@ -30,14 +30,14 @@ class file {
         std::size_t number_of_lines();
 
         void read(std::string file);
-        std::wstring get_line(std::size_t pos);
+        std::wstring get_line(std::size_t pos) const;
         const std::wstring &get_content();
         std::size_t get_length();
 
-        std::size_t get_line_length(std::size_t ln);
-        std::size_t line_to_position(std::size_t ln);
-        std::size_t position_to_line(std::size_t pos);
-        std::size_t position_to_column(std::size_t pos);
+        std::size_t get_line_length(std::size_t ln) const;
+        std::size_t line_to_position(std::size_t ln) const;
+        std::size_t position_to_line(std::size_t pos) const;
+        std::size_t position_to_column(std::size_t pos) const;
 
         void insert(std::size_t pos, std::wstring str);
         void erase(std::size_t pos, std::size_t len);

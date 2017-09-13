@@ -2,38 +2,11 @@
 #define TEXT_RENDER_CONTEXT_HPP
 
 #include "wx/wx.h"
-#include "state.hpp"
 #include "../misc/regtionary.hpp"
+#include "formatting.hpp"
 
 class text_render_context;
 class scan_context;
-
-
-class color {
-    public:
-
-        color() {
-            foreground = wxColour(255, 255, 255);
-            background = wxColour(0, 0, 0);
-        }
-
-        color(wxColour &fg, wxColour &bg): foreground(fg), background(bg) {
-        }
-
-        color(wxColour fg, wxColour bg): foreground(fg), background(bg) {
-        }
-
-        void print(scan_context *tx);
-
-        wxColour foreground;
-        wxColour background;
-
-    private:
-
-        void _print(scan_context *ctx, const std::wstring &str);
-};
-
-typedef regtionary <color> formatting;
 
 
 class line_state {
@@ -73,6 +46,7 @@ class text_render_context {
         void report();
         void reset();
 };
+
 
 class scan_context {
     public:

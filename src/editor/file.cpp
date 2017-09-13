@@ -93,15 +93,15 @@ std::size_t file::get_length() {
 }
 
 
-std::size_t file::line_to_position(std::size_t line) {
+std::size_t file::line_to_position(std::size_t line) const {
     return lines[line].start;
 }
 
-std::size_t file::get_line_length(std::size_t line) {
+std::size_t file::get_line_length(std::size_t line) const {
     return lines[line].length;
 }
 
-std::size_t file::position_to_column(std::size_t pos) {
+std::size_t file::position_to_column(std::size_t pos) const {
     auto it = std::find_if(lines.begin(), lines.end(), position_in_file(pos));
     if (it != lines.end()) {
         return pos - it->start;
@@ -110,7 +110,7 @@ std::size_t file::position_to_column(std::size_t pos) {
 }
 
 
-std::size_t file::position_to_line(std::size_t pos) {
+std::size_t file::position_to_line(std::size_t pos) const {
     auto it = std::find_if(lines.begin(), lines.end(), position_in_file(pos));
     if (it != lines.end()) {
         return it->line_number;
@@ -119,7 +119,7 @@ std::size_t file::position_to_line(std::size_t pos) {
 }
 
 
-std::wstring file::get_line(std::size_t ln) {
+std::wstring file::get_line(std::size_t ln) const {
     return content.substr(lines[ln].start, lines[ln].length);
 }
 

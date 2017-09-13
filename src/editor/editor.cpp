@@ -66,14 +66,14 @@ EditView::EditView(wxFrame* parent) :
     php->insert(L"\\\"[^\\\"]*\\\"", c6);
     php->insert(L"\\'[^\\']*\\'", c7);
 
-    std::cout << "DUMPING" << std::endl;
-    regtionary <color>::result res = format->scan(content.get_content().c_str());
-    while (res.next()) {
-        std::wstring str(res.at, 0, res.start);
-        std::cout << str << "||" << res.snip << "#" << res.current_node->value.background.GetRGB() << "/" << res.current_node->value.foreground.GetRGB() << "#";
-    }
+    // std::cout << "DUMPING" << std::endl;
+    // regtionary <color>::result res = format->scan(content.get_content().c_str());
+    // while (res.next()) {
+    //     std::wstring str(res.at, 0, res.start);
+    //     std::cout << str << "||" << res.snip << "#" << res.current_node->value.background.GetRGB() << "/" << res.current_node->value.foreground.GetRGB() << "#";
+    // }
 
-    std::cout << std::endl;
+    //std::cout << std::endl;
 }
 
 
@@ -86,9 +86,7 @@ void EditView::OnDraw(wxDC &dc) {
 
 
 wxSize EditView::render(wxDC &dc) {
-
     redraw(dc);
-
     return canvas_size;
 }
 
@@ -119,7 +117,6 @@ void EditView::redraw(wxDC &dc) {
 
     while (res.next()) {
         res.current_node->value.print(&ctx);
-        // ctx.active = res.current_node;
     }
 
     for (auto &caret : carets) {
@@ -157,6 +154,40 @@ void EditView::fix_carets() {
 }
 
 
+
+wxPoint EditView::fix_to_char(wxClientDC &dc, const wxPoint &point, int ln, int &offset) const {
+    wxPoint position = line_states[ln].screen;
+    std::wstring c = content.get_line(ln);
+    position.x = dc.GetTextExtent(c.c_str()).GetWidth();
+    for (offset = 0; offset < c.length(); offset++) {
+        wxString str = c.substr(0, offset);
+        wxSize sz = dc.GetTextExtent(str);
+        if (point.x <= sz.GetWidth()) {
+            position.x = sz.GetWidth();
+            break;
+        }
+    }
+    return position;
+}
+
+
+/*
+caret position = position in file (i)
+point on screen = point on screen (x, y)
+row and column = position in file translated to row and column (r, c) when content is split into lines with a delimiter
+
+Provide these:
+
+ - point on screen to caret position
+ - point on screen to row and column
+
+ - caret position to point on screen
+ - caret position to row and column
+
+ - row and column to point on screen
+ - row and column to caret position
+
+*/
 void EditView::OnLeftDown( wxMouseEvent& event ) {
 
     if (!event.AltDown()) {
@@ -182,23 +213,12 @@ void EditView::OnLeftDown( wxMouseEvent& event ) {
             break;
         }
 
-        if ((screen.y > line_states[ln].screen.y) &&
-            (screen.y < line_states[ln].screen.y + line_states[ln].extents.GetHeight())) {
+        if (point_on_line(screen, ln)) {
 
-            wxPoint position = line_states[ln].screen;
-            std::wstring c = content.get_line(ln);
-            position.x = dc.GetTextExtent(c.c_str()).GetWidth();
-            int i = 0;
-            for (; i < c.length(); i++) {
-                wxString str = c.substr(0, i);
-                wxSize sz = dc.GetTextExtent(str);
-                if (screen.x <= sz.GetWidth()) {
-                    position.x = sz.GetWidth();
-                    break;
-                }
-            }
+            int offset = 0;
+            wxPoint position = fix_to_char(dc, screen, ln, offset);
 
-            text_caret *car = new text_caret(content[ln].start + i, position, wxSize(2, line_states[ln].extents.GetHeight()));
+            text_caret *car = new text_caret(content[ln].start + offset, position, wxSize(2, line_states[ln].extents.GetHeight()));
             car->subscribe(this);
             carets.push_back(car);
 
@@ -217,6 +237,10 @@ void EditView::OnLeftUp( wxMouseEvent& event ) {
 }
 
 
+bool EditView::point_on_line(const wxPoint &point, int ln) const {
+    return (point.y > line_states[ln].screen.y) && (point.y < line_states[ln].screen.y + line_states[ln].extents.GetHeight());
+}
+
 
 void EditView::OnMotion( wxMouseEvent& event ) {
 
@@ -234,12 +258,14 @@ void EditView::OnMotion( wxMouseEvent& event ) {
     screen.y += GetScrollPos(wxVERTICAL) / scale;
 
     for (std::size_t ln = 0; ln < content.number_of_lines(); ln++) {
-        if ((screen.y > line_states[ln].screen.y) &&
-            (screen.y < line_states[ln].screen.y + line_states[ln].extents.GetHeight())) {
+        if (point_on_line(screen, ln)) {
             carets.push_back(new text_caret(content[ln].start, line_states[ln].screen, line_states[ln].extents));
             break;
         }
     }
+
+    fix_carets();
+    std::cout << carets.size() << std::endl;
 
     Refresh();
 }
