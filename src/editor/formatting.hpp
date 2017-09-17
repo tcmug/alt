@@ -14,17 +14,16 @@ class color {
         color(wxColour &fg, wxColour &bg);
         color(wxColour fg, wxColour bg);
 
-        void print(scan_context *tx);
-
-        wxColour foreground;
-        wxColour background;
+        void print(scan_context *tx) const;
 
     private:
 
-        void _print(scan_context *ctx, const std::wstring &str);
+        wxColour _foreground;
+        wxColour _background;
+
+        void _print(scan_context *ctx, const std::wstring &str) const;
 };
 
 typedef regtionary <color> formatting;
-
 
 #endif

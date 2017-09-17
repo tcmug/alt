@@ -12,9 +12,6 @@ class regtionary {
 
         class node;
 
-    public:
-
-
         enum NODETYPE {
             ROOT,
             SINGLE,
@@ -22,136 +19,176 @@ class regtionary {
             DROP
         };
 
-
         class result {
+
             public:
 
-                result(node *_cn, const wchar_t *_at, const wchar_t *_end):
-                    current_node(_cn),
-                    at(_at),
-                    end(_end),
-                    start(0),
-                    length(0),
-                    hits(0) {
-                    if (!end) {
-                        end = _at + wcslen(_at);
+                result(node *cn, const wchar_t *at, const wchar_t *end):
+                    _current_node(cn),
+                    _previous_node(0),
+                    _at(at),
+                    _end(end),
+                    _start(0),
+                    _length(0),
+                    _hits(0) {
+                    if (!_end) {
+                        _end = at + wcslen(at);
                     }
                 }
 
-                node *current_node;
-                int hits;
-                const wchar_t *at;
-                const wchar_t *end;
-
-                std::wstring snip;
-
-                size_t start, length;
-
                 bool next() {
 
-                    assert(at != NULL);
-                    assert(current_node != NULL);
+                    assert(_at != NULL);
+                    assert(_current_node != NULL);
 
-                    if (current_node->type == regtionary <VALUE>::SINGLE) {
-                        current_node = current_node->parent;
+                    _previous_node = _current_node;
+
+                    if (_current_node->_type == regtionary <VALUE>::SINGLE) {
+                        _current_node = _current_node->_parent;
                     }
-                    else if (current_node->type == regtionary <VALUE>::DROP) {
-                        current_node = current_node->parent->parent;
+                    else if (_current_node->_type == regtionary <VALUE>::DROP) {
+                        _current_node = _current_node->_parent->_parent;
                     }
 
+                    _at = _at + (_start + _length);
 
-                    at = at + (start + length);
-
-                    if (at >= end || *at == 0) {
+                    if (_at >= _end || *_at == 0) {
                         return false;
                     }
 
-                    start = 100000;
-                    length = 0;
-                    node *_next = NULL;
-                    int max_length = end - at;
+                    _start = 100000;
+                    _length = 0;
+                    node *next_node = NULL;
+                    int max_length = _end - _at;
 
-                    for (auto item : current_node->items) {
-                        if ((*item).regex->Matches(at)) {
+                    for (auto item : _current_node->_items) {
+                        if (item->_regex->Matches(_at)) {
                             size_t s, l;
-                            (*item).regex->GetMatch(&s, &l, 0);
+                            (*item)._regex->GetMatch(&s, &l, 0);
                             // If this fails, replace <= with <
-                            if (s < start && s <= max_length && s <= max_length && (s + l) <= max_length) {
-                                _next = item;
-                                start = s;
-                                length = l;
+                            if (s < _start && s <= max_length && s <= max_length && (s + l) <= max_length) {
+                                next_node = item;
+                                _start = s;
+                                _length = l;
                             }
                         }
                     }
 
                     // No match found, return full string as match.
-                    if (_next == NULL) {
-                        start = end - at;
-                        length = 0;
-                        snip = L"";
+                    if (next_node == NULL) {
+                        _start = _end - _at;
+                        _length = 0;
+                        _snip = L"";
                         return true;
                     }
 
-                    snip = at;
-                    snip = snip.substr(start, length);
+                    _snip = _at;
+                    _snip = _snip.substr(_start, _length);
 
-                    current_node = _next;
+                    _current_node = next_node;
 
                     return true;
                 }
 
-        };
 
+                const node *getParentNode() const {
+                    return _current_node->_parent;
+                }
+
+                const node *getCurrentNode() const {
+                    return _current_node;
+                }
+
+                const node *getPreviousNode() const {
+                    return _previous_node;
+                }
+
+                const std::wstring &getSnip() const {
+                    return _snip;
+                }
+
+                const wchar_t *getAt() const {
+                    return _at;
+                }
+
+                size_t getStart() const {
+                    return _start;
+                }
+
+            private:
+
+                node *_current_node;
+                node *_previous_node;
+
+                const wchar_t *_at;
+                const wchar_t *_end;
+
+                std::wstring _snip;
+                size_t _start, _length;
+                int _hits;
+
+        };
 
         class node {
 
-            public:
+            friend class result;
 
-                VALUE value;
-                NODETYPE type;
+            private:
 
-                std::wstring re;
-                std::vector <node*> items;
-                wxRegEx *regex;
-                node *parent;
+                VALUE _value;
+                NODETYPE _type;
 
-                node() {
-                    parent = NULL;
-                    type = ROOT;
+                std::wstring _re;
+                std::vector <node*> _items;
+                wxRegEx *_regex;
+                node *_parent;
+
+                node(std::wstring re, VALUE value, NODETYPE t) {
+                    _re = re;
+                    _regex = new wxRegEx(_re.c_str(), wxRE_ADVANCED);
+                    _value = value;
+                    _type = t;
                 }
 
-                node(std::wstring _re, VALUE _value, NODETYPE t) {
-                    re = _re;
-                    regex = new wxRegEx(re.c_str(), wxRE_ADVANCED);
-                    value = _value;
-                    type = t;
+            public:
+
+                node():  _type(ROOT), _parent(NULL) {
                 }
 
                 virtual void print(int depth = 0) {
-                    for (auto item : items) {
+                    for (auto item : _items) {
                         std::wstring padding(depth * 2, ' ');
-                        std::cout << padding << (*item).re << std::endl;
-                        if ((*item).items.size() > 0) {
+                        std::cout << padding << (*item)._re << std::endl;
+                        if ((*item)._items.size() > 0) {
                             (*item).print(depth + 1 );
                         }
                     }
                 }
 
                 virtual bool last() {
-                    return items.size() == 0;
+                    return _items.size() == 0;
                 }
-
 
                 node *insert(std::wstring key, VALUE value, NODETYPE type = SINGLE) {
                     node *nn = new node(key, value, type);
-                    nn->parent = this;
-                    items.push_back(nn);
+                    nn->_parent = this;
+                    _items.push_back(nn);
                     return nn;
                 }
 
-        };
+                NODETYPE getType() const {
+                    return _type;
+                }
 
-        node root;
+                const node *getParent() const {
+                    return _parent;
+                }
+
+                VALUE getValue() const {
+                    return _value;
+                }
+
+        };
 
         node *insert(std::wstring key, VALUE value, NODETYPE type = SINGLE) {
             return root.insert(key, value, type);
@@ -165,9 +202,14 @@ class regtionary {
             return result(&root, str, end);
         }
 
-        node *get_root() {
+        node *getRoot() {
             return &root;
         }
+
+    private:
+
+        node root;
+
 
 };
 

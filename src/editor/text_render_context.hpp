@@ -9,19 +9,6 @@ class text_render_context;
 class scan_context;
 
 
-class line_state {
-
-    public:
-
-        line_state(wxPoint _screen, wxSize _extents, formatting::node *_node): screen(_screen), extents(_extents), current_node(_node) {
-        }
-
-        wxPoint screen;
-        wxSize extents;
-        formatting::node *current_node;
-};
-
-
 class text_render_context {
     public:
 
@@ -48,14 +35,6 @@ class text_render_context {
 };
 
 
-class scan_context {
-    public:
-        scan_context(std::vector <line_state> *_line_states, formatting::result *_res, text_render_context *_tx): line_states(_line_states), res(_res), tx(_tx) {
-        }
 
-        std::vector <line_state> *line_states;
-        formatting::result *res;
-        text_render_context *tx;
-};
 
 #endif

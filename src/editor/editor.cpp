@@ -116,7 +116,11 @@ void EditView::redraw(wxDC &dc) {
     scan_context ctx(&line_states, &res, &tx);
 
     while (res.next()) {
-        res.current_node->value.print(&ctx);
+        res.getCurrentNode()->getValue().print(&ctx);
+    }
+
+    for (auto &state : line_states) {
+        state.report();
     }
 
     for (auto &caret : carets) {
@@ -126,8 +130,8 @@ void EditView::redraw(wxDC &dc) {
             std::wstring str = content.get_line(position.y);
             wxSize sz = dc.GetTextExtent(str.substr(0, position.x));
 
-            caret->screen = wxPoint(sz.GetWidth(), line_states[position.y].screen.y);
-            caret->extents = wxSize(2, line_states[position.y].extents.GetHeight());
+            caret->screen = wxPoint(sz.GetWidth(), line_states[position.y].getScreen().y);
+            caret->extents = wxSize(2, line_states[position.y].getExtents().GetHeight());
             caret->mark_clean();
         }
         caret->render(tx);
@@ -156,7 +160,7 @@ void EditView::fix_carets() {
 
 
 wxPoint EditView::fix_to_char(wxClientDC &dc, const wxPoint &point, int ln, int &offset) const {
-    wxPoint position = line_states[ln].screen;
+    wxPoint position = line_states[ln].getScreen();
     std::wstring c = content.get_line(ln);
     position.x = dc.GetTextExtent(c.c_str()).GetWidth();
     for (offset = 0; offset < c.length(); offset++) {
@@ -218,7 +222,7 @@ void EditView::OnLeftDown( wxMouseEvent& event ) {
             int offset = 0;
             wxPoint position = fix_to_char(dc, screen, ln, offset);
 
-            text_caret *car = new text_caret(content[ln].start + offset, position, wxSize(2, line_states[ln].extents.GetHeight()));
+            text_caret *car = new text_caret(content[ln].start + offset, position, wxSize(2, line_states[ln].getExtents().GetHeight()));
             car->subscribe(this);
             carets.push_back(car);
 
@@ -238,7 +242,7 @@ void EditView::OnLeftUp( wxMouseEvent& event ) {
 
 
 bool EditView::point_on_line(const wxPoint &point, int ln) const {
-    return (point.y > line_states[ln].screen.y) && (point.y < line_states[ln].screen.y + line_states[ln].extents.GetHeight());
+    return (point.y > line_states[ln].getScreen().y) && (point.y < line_states[ln].getScreen().y + line_states[ln].getExtents().GetHeight());
 }
 
 
@@ -259,7 +263,7 @@ void EditView::OnMotion( wxMouseEvent& event ) {
 
     for (std::size_t ln = 0; ln < content.number_of_lines(); ln++) {
         if (point_on_line(screen, ln)) {
-            carets.push_back(new text_caret(content[ln].start, line_states[ln].screen, line_states[ln].extents));
+            carets.push_back(new text_caret(content[ln].start, line_states[ln].getScreen(), line_states[ln].getExtents()));
             break;
         }
     }

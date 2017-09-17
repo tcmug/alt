@@ -14,6 +14,7 @@
 #include "text_marker.hpp"
 #include "dirtyable.hpp"
 #include "editor_event.hpp"
+#include "scan_context.hpp"
 
 using alt::ide;
 

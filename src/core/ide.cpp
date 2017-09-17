@@ -35,7 +35,6 @@ ide::ide():
 	SetStatusText(wxT("..."), 0);
 
     EditView *file = new EditView( (wxFrame*) this );
-
 // new wxTextCtrl(this, wxID_Blah, "Hi!", wxDefaultPosition, wxDefaultSize, wxTE_MULTILINE | wxTE_RICH , wxDefaultValidator, wxTextCtrlNameStr);
 
 
