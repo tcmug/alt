@@ -1,0 +1,9 @@
+
+dependencies:
+  wxwidgets: 3.0.3.1
+  lua: 5.3.4
+
+target:
+  commands:
+  - make -j$make_concurrency ROOT="$root" CFLAGS="-I./dependencies/include" LDFLAGS="-L./dependencies/lib"
+
