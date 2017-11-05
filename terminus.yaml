@@ -41,5 +41,5 @@ dependencies:
 
 target:
   commands:
-  - make -j$make_concurrency ROOT="$root" CFLAGS="-I./dependencies/include" LDFLAGS="-L./dependencies/lib" generic
+  - make -j$make_concurrency ROOT="$root" CFLAGS="-I./dependencies/include" LDFLAGS="-L./dependencies/lib"
 
