@@ -5,7 +5,10 @@ ROOT_DIR := $(ROOT)
 CC = $(shell $(ROOT_DIR)/bin/fltk-config --cxx)
 
 SYSCFLAGS = $(shell $(ROOT_DIR)/bin/fltk-config --cxxflags) -Wall -O3 -pedantic -W -g -Wignored-qualifiers
-SYSLDFLAGS = $(shell $(ROOT_DIR)/bin/fltk-config --ldstaticflags) -ffunction-sections -fdata-sections -dead_strip
+SYSLDFLAGS = -ffunction-sections -fdata-sections -dead_strip
+
+LINKFLTK = $(shell $(ROOT_DIR)/bin/fltk-config --ldstaticflags) 
+POSTFLTK = $(ROOT_DIR)/bin/fltk-config --post
 
 PLATFORMS = "osx, linux, mingw32, mingw64"
 
@@ -82,8 +85,10 @@ MAIN_OBJ := $(patsubst src/%.cpp,tmp/main_%.o,$(MAIN_SRC))
 all:
 	@echo "Define platform: $(PLATFORMS)"
 
-variant: $(MAIN_OBJ) #$(GFX_OBJ) $(OBJ_OBJ) $(LUA_OBJ)
-	$(CC) $(LDFLAGS) -o $@ $^
+variant: $(MAIN_OBJ) #$(GFX_OBJ) $(OBJ_OBJ) $(LUA_OBJ) 
+	$(CC) $(LDFLAGS) -o $@ $^ $(LINKFLTK)
+	strip variant
+	$(POSTFLTK) variant
 
 tmp/main_%.o: src/%.cpp
 	$(CC) $(CFLAGS) -c -o $@ $<
