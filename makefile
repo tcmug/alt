@@ -1,51 +1,85 @@
 
 # GENERICS
 CC = g++
-COMMON_FLAGS = -Wno-c++11-extensions -O3 -mmacosx-version-min=10.7 -arch x86_64
 
-ROOT_DIR:=$(ROOT)
+SYSCFLAGS = -Wall -O3 -pedantic -W -g -std=c++11 -Wignored-qualifiers
+SYSLDFLAGS = -ffunction-sections -fdata-sections -dead_strip -Wno-c++11-extensions
+
+# Fails with Windows targets
+ROOT_DIR:=$(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+
+PLATFORMS = "osx, linux, mingw32, mingw64"
+
+HEADERS_DIR = dependencies/include
+LIBS_DIR = dependencies/lib
+
 # LUA CONFIG
-HEADERS_DIR = $(ROOT_DIR)/include
-LIBS_DIR = $(ROOT_DIR)/lib
 LUA_LDFLAGS = -llua
 LUA_CFLAGS =
 
-# WX CONFIG
-WX_CONFIG ?= $(ROOT_DIR)/bin/wx-config
-WX_PORT ?= $(shell $(WX_CONFIG) --query-toolkit)
-WX_VERSION ?= $(shell $(WX_CONFIG) --query-version | sed -e 's/\([0-9]*\)\.\([0-9]*\)/\1\2/')
-WX_VERSION_MAJOR = $(shell echo $(WX_VERSION) | cut -c1,1)
-WX_VERSION_MINOR = $(shell echo $(WX_VERSION) | cut -c2,2)
-WX_CONFIG_FLAGS = --toolkit=$(WX_PORT) --version=$(WX_VERSION_MAJOR).$(WX_VERSION_MINOR)
-WX_CFLAGS = $(shell $(WX_CONFIG) --cxxflags --static $(WX_CONFIG_FLAGS))
-WX_LDFLAGS = $(shell $(WX_CONFIG) --libs --static $(WX_CONFIG_FLAGS))
-WX_CFLAGS = `$(WX_CONFIG) --cxxflags --static $(WX_CONFIG_FLAGS)`
-WX_LDFLAGS = `$(WX_CONFIG) --libs --static $(WX_CONFIG_FLAGS)`
+# SDL CONFIG
+SDL_LDFLAGS =
+SDL_CFLAGS =
 
-# SPECIFICS
-MY_CFLAGS := -I$(HEADERS_DIR) $(COMMON_FLAGS) -Wall $(WX_CFLAGS) $(LUA_CFLAGS) $(CFLAGS)
-MY_LDFLAGS := -L$(LIBS_DIR) -ffunction-sections -fdata-sections -Wl $(COMMON_FLAGS) -dead_strip $(WX_LDFLAGS) $(LUA_LDFLAGS) $(LDLAGS)
 
-CORE_SRC := $(wildcard src/core/*.cpp)
-CORE_OBJ := $(patsubst src/core/%.cpp,tmp/core_%.o,$(CORE_SRC))
+################################################################################
+## OSX TARGET
+################################################################################
 
-EDITOR_SRC := $(wildcard src/editor/*.cpp)
-EDITOR_OBJ := $(patsubst src/editor/%.cpp,tmp/editor_%.o,$(EDITOR_SRC))
+# -F DOES NOT MAKE INTO NEXT CALL
+OSX_COMMON          = -F /Library/Frameworks -mmacosx-version-min=10.9 -arch x86_64
+OSX_CFLAGS          = $(OSX_COMMON) $(OSX_CFLAGS_BULLET)
+OSX_LDFLAGS         = $(OSX_COMMON) $(OSX_LDFLAGS_SDL) $(OSX_LDFLAGS_BULLET)
 
-MISC_SRC := $(wildcard src/misc/*.cpp)
-MISC_OBJ := $(patsubst src/misc/%.cpp,tmp/misc_%.o,$(MISC_SRC))
+osx:
+	$(MAKE) -j 4 variant CFLAGS="$(CFLAGS) $(OSX_CFLAGS)" LDFLAGS="$(LDFLAGS) $(OSX_LDFLAGS)"
+
+################################################################################
+## LINUX TARGET
+################################################################################
+
+linux:
+	$(MAKE) -j 4 variant CFLAGS="$(CFLAGS) -m64" LDFLAGS="$(LDFLAGS) -m64"
+
+################################################################################
+## MINGW32 TARGET
+################################################################################
+
+mingw32:
+	$(MAKE) variant CC="mingw32-gcc.exe" CFLAGS="$(CFLAGS)" LDFLAGS="$(LDFLAGS)"
+
+################################################################################
+## MINGW64 TARGET
+################################################################################
+
+mingw64:
+	$(MAKE) variant CC="x86_64-w64-mingw64-gcc.exe" CFLAGS="" LDFLAGS="$(LDFLAGS)"
+
+################################################################################
+## BUILD PROCESS
+################################################################################
+
+CFLAGS = $(SYSCFLAGS) $(MYCFLAGS) -I$(HEADERS_DIR) $(SDL_CFLAGS) $(LUA_CFLAGS)
+LDFLAGS = $(SYSLDFLAGS) $(MYLDFLAGS) -L$(LIBS_DIR) -I$(HEADERS_DIR) $(SDL_LDFLAGS) $(LUA_LDFLAGS)
 
 MAIN_SRC := $(wildcard src/*.cpp)
 MAIN_OBJ := $(patsubst src/%.cpp,tmp/main_%.o,$(MAIN_SRC))
 
-all: mini
+GFX_SRC := $(wildcard src/gfx/*.cpp)
+GFX_OBJ := $(patsubst src/gfx/%.cpp,tmp/gfx_%.o,$(GFX_SRC))
 
-# Link
+OBJ_SRC := $(wildcard src/obj/*.cpp)
+OBJ_OBJ := $(patsubst src/obj/%.cpp,tmp/obj_%.o,$(OBJ_SRC))
 
-variant: $(MAIN_OBJ) $(CORE_OBJ) $(EDITOR_OBJ) $(MISC_OBJ)
-	$(CC) $(MY_LDFLAGS) -o $@ $^
+LUA_SRC := $(wildcard src/lua/*.cpp)
+LUA_OBJ := $(patsubst src/lua/%.cpp,tmp/lua_%.o,$(LUA_SRC))
 
-# Core stuff
+all:
+	@echo "Define platform: $(PLATFORMS)"
+
+variant: $(MAIN_OBJ) $(GFX_OBJ) $(OBJ_OBJ) $(LUA_OBJ)
+	$(CC) $(LDFLAGS) -o $@ $^
+
 tmp/main_%.o: src/%.cpp
 	$(CC) $(MY_CFLAGS) -c -o $@ $<
 
@@ -58,16 +92,8 @@ tmp/editor_%.o: src/editor/%.cpp
 tmp/misc_%.o: src/misc/%.cpp
 	$(CC) $(MY_CFLAGS) -c -o $@ $<
 
-# Core stuff
-
 clean:
 	rm -f variant docs/* tmp/*
-
-mini: variant
-	strip variant ; SetFile -t APPL Variant
-
-dist: mini
-	upx variant
 
 test: $(MISC_OBJ)
 	$(CC) test.cpp $(MY_LDFLAGS) -o $@ $^
