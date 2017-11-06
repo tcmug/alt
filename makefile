@@ -2,13 +2,15 @@
 # GENERICS
 ROOT_DIR := $(ROOT)
 
-CC = $(shell $(ROOT_DIR)/bin/fltk-config --cxx)
+FLTK_CONFIG = $(ROOT_DIR)/bin/fltk-config
 
-SYSCFLAGS = $(shell $(ROOT_DIR)/bin/fltk-config --cxxflags) -Wall -O3 -pedantic -W -g -Wignored-qualifiers -std=c++11
+CC = $(shell $(FLTK_CONFIG) --cxx)
+
+SYSCFLAGS = $(shell $(FLTK_CONFIG) --cxxflags) -Wall -O3 -pedantic -W -g -Wignored-qualifiers -std=c++11
 SYSLDFLAGS = -ffunction-sections -fdata-sections -dead_strip -std=c++11
 
-LINKFLTK = $(shell $(ROOT_DIR)/bin/fltk-config --ldstaticflags)
-POSTFLTK = $(ROOT_DIR)/bin/fltk-config --post
+FLTK_LINK = $(shell $(FLTK_CONFIG) --ldstaticflags)
+FLTK_POST = $(FLTK_CONFIG) --post
 
 PLATFORMS = "osx, linux, mingw32, mingw64"
 
@@ -18,15 +20,6 @@ LIBS_DIR = $(ROOT_DIR)/lib
 # LUA CONFIG
 LUA_LDFLAGS = -llua
 LUA_CFLAGS =
-
-################################################################################
-## OSX TARGET
-################################################################################
-
-# -F DOES NOT MAKE INTO NEXT CALL
-OSX_COMMON          = -F /Library/Frameworks -mmacosx-version-min=10.9 -arch x86_64
-OSX_CFLAGS          = $(OSX_COMMON)
-OSX_LDFLAGS         = $(OSX_COMMON)
 
 ################################################################################
 ## BUILD PROCESS
@@ -50,9 +43,9 @@ MISC_OBJ := $(patsubst src/misc/%.cpp,tmp/misc_%.o,$(MISC_SRC))
 all: variant
 
 variant: $(MAIN_OBJ) $(MISC_OBJ) #$(OBJ_OBJ) $(LUA_OBJ)
-	$(CC) $(_LDFLAGS) -o $@ $^ $(LINKFLTK)
+	$(CC) $(_LDFLAGS) -o $@ $^ $(FLTK_LINK)
 	strip variant
-	$(POSTFLTK) variant
+	$(FLTK_POST) variant
 
 tmp/main_%.o: src/%.cpp
 	$(CC) $(_CFLAGS) -c -o $@ $<
@@ -67,7 +60,7 @@ tmp/misc_%.o: src/misc/%.cpp
 	$(CC) $(_CFLAGS) -c -o $@ $<
 
 clean:
-	rm -f variant docs/* tmp/*
+	rm -rf variant docs/* tmp/* variant.app
 
 test: $(MISC_OBJ)
 	$(CC) test.cpp $(MY_LDFLAGS) -o $@ $^
