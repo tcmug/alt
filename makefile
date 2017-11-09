@@ -28,40 +28,40 @@ LUA_CFLAGS =
 _CFLAGS = $(SYSCFLAGS) $(MYCFLAGS) -I$(HEADERS_DIR) $(LUA_CFLAGS)
 _LDFLAGS = $(SYSLDFLAGS) $(MYLDFLAGS) -L$(LIBS_DIR) -I$(HEADERS_DIR) $(LUA_LDFLAGS)
 
-MAIN_SRC := $(wildcard src/*.cpp)
-MAIN_OBJ := $(patsubst src/%.cpp,tmp/main_%.o,$(MAIN_SRC))
+MAIN_SRC := $(wildcard src/*.cxx)
+MAIN_OBJ := $(patsubst src/%.cxx,tmp/main_%.o,$(MAIN_SRC))
 
-MISC_SRC := $(wildcard src/misc/*.cpp)
-MISC_OBJ := $(patsubst src/misc/%.cpp,tmp/misc_%.o,$(MISC_SRC))
+MISC_SRC := $(wildcard src/misc/*.cxx)
+MISC_OBJ := $(patsubst src/misc/%.cxx,tmp/misc_%.o,$(MISC_SRC))
 
-# OBJ_SRC := $(wildcard src/obj/*.cpp)
-# OBJ_OBJ := $(patsubst src/obj/%.cpp,tmp/obj_%.o,$(OBJ_SRC))
+EDITOR_SRC := $(wildcard src/editor/*.cxx)
+EDITOR_OBJ := $(patsubst src/editor/%.cxx,tmp/editor_%.o,$(EDITOR_SRC))
 
-# LUA_SRC := $(wildcard src/lua/*.cpp)
-# LUA_OBJ := $(patsubst src/lua/%.cpp,tmp/lua_%.o,$(LUA_SRC))
+# LUA_SRC := $(wildcard src/lua/*.cxx)
+# LUA_OBJ := $(patsubst src/lua/%.cxx,tmp/lua_%.o,$(LUA_SRC))
 
 all: variant
 
-variant: $(MAIN_OBJ) $(MISC_OBJ) #$(OBJ_OBJ) $(LUA_OBJ)
+variant: $(MAIN_OBJ) $(MISC_OBJ) $(EDITOR_OBJ)
 	$(CC) $(_LDFLAGS) -o $@ $^ $(FLTK_LINK)
 	strip variant
 	$(FLTK_POST) variant
 
-tmp/main_%.o: src/%.cpp
+tmp/main_%.o: src/%.cxx
 	$(CC) $(_CFLAGS) -c -o $@ $<
 
-# tmp/core_%.o: src/core/%.cpp
-# 	$(CC) $(CFLAGS) -c -o $@ $<
+# tmp/core_%.o: src/core/%.cxx
+# 	$(CC) $(_CFLAGS) -c -o $@ $<
 
-# tmp/editor_%.o: src/editor/%.cpp
-# 	$(CC) $(CFLAGS) -c -o $@ $<
+tmp/editor_%.o: src/editor/%.cxx
+	$(CC) $(_CFLAGS) -c -o $@ $<
 
-tmp/misc_%.o: src/misc/%.cpp
+tmp/misc_%.o: src/misc/%.cxx
 	$(CC) $(_CFLAGS) -c -o $@ $<
 
 clean:
 	rm -rf variant docs/* tmp/* variant.app
 
 test: $(MISC_OBJ)
-	$(CC) test.cpp $(MY_LDFLAGS) -o $@ $^
+	$(CC) test.cxx $(MY_LDFLAGS) -o $@ $^
 

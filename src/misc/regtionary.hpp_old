@@ -29,8 +29,9 @@ class regtionary {
                     _previous_node(0),
                     _at(at),
                     _end(end),
+                    _start(0),
                     _length(0),
-                    _next_node(0) {
+                    _hits(0) {
                     if (!_end) {
                         _end = at + strlen(at);
                     }
@@ -41,19 +42,6 @@ class regtionary {
                     assert(_at != NULL);
                     assert(_current_node != NULL);
 
-                    // SPECIAL CASE: Already matched a node.
-                    if (_next_node) {
-                    // FIRST: from _at until _at + _length with current_node
-                    // SECOND: from _at + _length until _at + _length + _match_length
-                        _at += _length;
-                        _length = _match_length;
-                        _current_node = _next_node;
-                        _next_node = 0;
-                        return true;
-                    }
-
-                    _at += _length;
-
                     _previous_node = _current_node;
 
                     if (_current_node->_type == regtionary <VALUE>::SINGLE) {
@@ -63,44 +51,42 @@ class regtionary {
                         _current_node = _current_node->_parent->_parent;
                     }
 
-                    // END.
+                    _at = _at + (_start + _length);
+
                     if (_at >= _end || *_at == 0) {
                         return false;
                     }
 
-                    size_t min_s = 100000;
+                    _start = 100000;
                     _length = 0;
 
-                    size_t max_length = _end - _at;
-                    _next_node = NULL;
+                    node *next_node = NULL;
+                    int max_length = _end - _at;
 
                     for (auto item : _current_node->_items) {
                         std::smatch match;
                         if (std::regex_search(std::string(_at), match, (*(*item)._regex))) {
                             size_t s = match.position(), l = match.length();
-                            if (s < min_s && s <= max_length && s <= max_length && (s + l) <= max_length) {
-                                _next_node = item;
-                                _length = s;
-                                _match_length = l;
-                                min_s = s;
+                            if (s < _start && s <= max_length && s <= max_length && (s + l) <= max_length) {
+                                next_node = item;
+                                _start = s;
+                                _length = l;
                             }
                         }
                     }
 
-                    // from _at until _at + _start with current_node
-                    // from _at + _start until _at + _start + _length with next_node
-
                     // No match found, return full string as match.
-                    if (_next_node == NULL) {
-                        _length = _end - _at;
+                    if (next_node == NULL) {
+                        _start = _end - _at;
+                        _length = 0;
+                        _snip = "";
                         return true;
                     }
 
-                    if (_length == 0) {
-                        _current_node = _next_node;
-                        _next_node = 0;
-                        _length = _match_length;
-                    }
+                    _snip = _at;
+                    _snip = _snip.substr(_start, _length);
+
+                    _current_node = next_node;
 
                     return true;
                 }
@@ -118,28 +104,29 @@ class regtionary {
                     return _previous_node;
                 }
 
-                // const std::string &getSnip() const {
-                //     return _snip;
-                // }
+                const std::string &getSnip() const {
+                    return _snip;
+                }
 
                 const char *getAt() const {
                     return _at;
                 }
 
-                size_t getLength() const {
-                    return _length;
+                size_t getStart() const {
+                    return _start;
                 }
 
             private:
 
                 node *_current_node;
                 node *_previous_node;
-                node *_next_node;
 
                 const char *_at;
                 const char *_end;
 
-                size_t _length, _match_length;
+                std::string _snip;
+                size_t _start, _length;
+                int _hits;
 
         };
 
