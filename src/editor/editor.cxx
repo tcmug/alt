@@ -1,5 +1,6 @@
 
-#include "editor.hpp"
+#include "Editor.h"
+#include "DrawContext.h"
 
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
@@ -8,32 +9,46 @@
 #include <FL/Fl_Scroll.H>
 #include <math.h>
 
-#include <regex>
+#include <memory.h>
 #include <map>
 #include <string>
+#include <iostream>
+
+
 
 int Editor::handle(int e) {
     int ret = Fl_Widget::handle(e);
 
     switch (e) {
 
+        case FL_PUSH: {
+            Point pt(Fl::event_x(), Fl::event_y());
+            Point pos = coordinateToPosition(pt);
+            std::cout << pt._x << " " << pt._y << " >>> ";
+            std::cout << pos._x << " " << pos._y << std::endl;
+        }
+        break;
+
         case FL_FOCUS:
         case FL_UNFOCUS:
             ret = 1;                // enables receiving keyboard events
             break;
 
-        case FL_SHORTCUT:           // incase widget that isn't ours has focus
         case FL_KEYDOWN:            // keyboard key pushed
-        case FL_KEYUP:              // keyboard key released
-            //printf("%i\n", Fl::event_key());
+            insert(Fl::event_text(), Fl::event_length());
             break;
+
+        case FL_SHORTCUT:           // incase widget that isn't ours has focus
+        case FL_KEYUP:              // keyboard key released
+           // printf("%s\n"s Fl::event_text());
+            break;
+
 
         case FL_ENTER:
             ret = 1; // FL_ENTER: must return(1) to receive FL_MOVE
             break;
 
-        case FL_MOVE: // FL_MOVE: mouse movement causes 'user damage' and redraw..
-            //damage(FL_DAMAGE_USER1);
+        case FL_MOVE:
             //printf("x=%d y=%d\n", (int)Fl::event_x(), (int)Fl::event_y());
             ret = 1;
             break;
@@ -43,28 +58,96 @@ int Editor::handle(int e) {
 }
 
 
+void Editor::insert(const char *str, size_t length) {
+    printf("%s\n", str);
+    for (auto &caret : carets) {
+        EditorEvent event(EditorEvent::INSERT_STRING, caret->position);
+        notify(&event);
+    }
+}
+
+
+
 void Editor::draw() {
 
     fl_color(4);
-    //printf("%i %i\n", x(), w());
-    fl_rectf(x(),y(),w(),h());
+    fl_rectf(x(), y(), w(), h());
 
-    fl_font(_font, 13);
+    fl_font(_font, _fontSize);
     fl_color(7);
 
-    const char *str = "$this->roy->日本国->Hello->кошка->кошка->$there - 200; <?php \"hello\" ?> uh->oh";
+    Formatting::Result res = _format->scan(_content);
 
-    auto res = _format->scan(str);
-    int dx, dy, ww, hh;
-    int xp = x(), yp = y() - fl_descent() + fl_height();
+    float sx = x();
+    float sy = (float)y() - fl_descent() + fl_height();
+
+    DrawContext ctx(sx, sy, &res, &_lineStates);
+    ctx._leftMargin = sx;
 
     while (res.next()) {
-        res.getCurrentNode()->getValue().print();
-        fl_draw(res.getAt(), res.getLength(), xp, yp);
-        yp += fl_height();
-        xp += fl_width(res.getAt(), res.getLength());
+        res.getCurrentNode()->getValue()->print(&ctx);
     }
 
+    const char *s = "Hello日本国Worldкошка\u2424";
+    size_t i, col, a = 0;
+    for (col=i=0; s[i]; i++) {
+        if ((unsigned char)s[i] < 0x80 || (unsigned char)s[i] > 0xBF) {
+            fl_draw(&s[a], i-a, ctx._x, ctx._y);
+            ctx._x += fl_width(&s[a], i-a);
+            a = i;
+            col++;
+        }
+    }
+
+
+}
+
+
+Point Editor::positionToCoordinate(const Point &position) {
+
+    Formatting::Result res = _format->scan(_content);
+
+    float sx = x();
+    float sy = (float)y() - fl_descent() + fl_height();
+
+    DrawContext ctx(sx, sy, &res, &_lineStates);
+
+    ctx._render = false;
+    ctx._leftMargin = sx;
+    ctx._stopCondition = DrawContext::POSITION;
+
+    while (res.next()) {
+        res.getCurrentNode()->getValue()->print(&ctx);
+    }
+}
+
+
+
+Point Editor::coordinateToPosition(const Point &coordinate) {
+
+    Formatting::Result res = _format->scan(_content);
+
+    float sx = x();
+    float sy = (float)y() - fl_descent() + fl_height();
+
+    DrawContext ctx(sx, sy, &res, &_lineStates);
+
+    ctx._render        = false;
+    ctx._leftMargin    = sx;
+    ctx._stopCondition = DrawContext::COORDINATE;
+    ctx._stopX         = coordinate._x;
+    ctx._stopY         = coordinate._y;
+
+    while (res.next()) {
+        res.getCurrentNode()->getValue()->print(&ctx);
+        if (ctx._stopConditionMet) {
+            break;
+        }
+    }
+
+    std::cout << ctx._column << " " << ctx._row << std::endl;
+
+    return Point(ctx._stopColumn, ctx._stopRow);
 }
 
 
@@ -86,7 +169,7 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
         fonts[Fl::get_font_name((Fl_Font)i,&t)] = i;
     }
 
-    auto fi = fonts.find("VT220");
+    auto fi = fonts.find("Roboto Mono");
 
     if (fi != fonts.end()) {
         _font = fi->second;
@@ -95,29 +178,34 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
         _font = FL_COURIER;
     }
 
-    _format = new formatting();
+    _fontSize = 20;
+    _content = (char*)malloc(512);
+    strcpy(_content, "日本国 -- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334");
 
-    element c1(0);
-    element c2(1);
-    element c3(2);
-    element c4(3);
-    element c5(4);
-    element c6(5);
-    element c7(6);
-    element c8(7);
+    _format = new Formatting();
+    _format->getRoot()->setValue(new Element(0x808080));
 
-    _format->insert("[0-9]+", c1);
-    _format->insert("->", c3);
-    _format->insert("[-+*=\\/]", c4);
+    Element *c2 = new Element(0x00FF0000);
+    ElementNewLine *eol = new ElementNewLine(0xFF00FF00);
+    ElementTab *tab = new ElementTab(0x80808000);
 
-    formatting::node *tag = _format->insert("\\<!--", c8, formatting::ENTER);
-    tag->insert("-->", c8, formatting::DROP);
+    _format->insert("[\\r\\n]+", eol);
+    _format->insert("\\t", tab);
+    _format->insert("->", c2);
+    // _format->insert("[0-9]+", &c1);
+    // _format->insert("->", &c3);
+    // _format->insert("[-+*=\\/]", &c4);
 
-    formatting::node *php = _format->insert("\\<\\?php", c8, formatting::ENTER);
-    php->insert("\\$[a-zA-Z0-9]+", c2);
-    php->insert("\\?>", c8, formatting::DROP);
-    php->insert("\\\"[^\\\"]*\\\"", c6);
-    php->insert("\\'[^\\']*\\'", c7);
+    // Formatting::Node *tag = _format->insert("\\<!--", &c8, Formatting::ENTER);
+    // tag->insert("[\\r\\n]+", &eol);
+    // tag->insert("-->", &c8, Formatting::DROP);
+
+    // Formatting::Node *php = _format->insert("\\<\\?php", &c8, Formatting::ENTER);
+    // php->insert("[\\r\\n]+", &eol);
+    // php->insert("\\$[a-zA-Z0-9]+", &c2);
+    // php->insert("\\?>", &c8, Formatting::DROP);
+    // php->insert("\\\"[^\\\"]*\\\"", &c6);
+    // php->insert("\\'[^\\']*\\'", &c7);
 
 }
 
