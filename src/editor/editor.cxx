@@ -88,16 +88,16 @@ void Editor::draw() {
         res.getCurrentNode()->getValue()->print(&ctx);
     }
 
-    const char *s = "Hello日本国Worldкошка\u2424";
-    size_t i, col, a = 0;
-    for (col=i=0; s[i]; i++) {
-        if ((unsigned char)s[i] < 0x80 || (unsigned char)s[i] > 0xBF) {
-            fl_draw(&s[a], i-a, ctx._x, ctx._y);
-            ctx._x += fl_width(&s[a], i-a);
-            a = i;
-            col++;
-        }
-    }
+    // const char *s = "Hello日本国Worldкошка\u2424";
+    // size_t i, col, a = 0;
+    // for (col=i=0; s[i]; i++) {
+    //     if ((unsigned char)s[i] < 0x80 || (unsigned char)s[i] > 0xBF) {
+    //         fl_draw(&s[a], i-a, ctx._x, ctx._y);
+    //         ctx._x += fl_width(&s[a], i-a);
+    //         a = i;
+    //         col++;
+    //     }
+    // }
 
 
 }
@@ -180,7 +180,7 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 
     _fontSize = 20;
     _content = (char*)malloc(512);
-    strcpy(_content, "日本国 -- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334");
+    strcpy(_content, "Hello->world!!\n日本国 -- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334");
 
     _format = new Formatting();
     _format->getRoot()->setValue(new Element(0x808080));

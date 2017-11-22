@@ -1,50 +1,50 @@
 
-#include "observer.hpp"
+#include "Observer.h"
 
 
-event::~event() {
+Event::~Event() {
 }
 
 
-void event::consume() {
+void Event::consume() {
     consumed = true;
 }
 
 
-observer::~observer() {
-    for (auto s : subjects) {
-        s->observers.remove(this);
+Observer::~Observer() {
+    for (auto s : _subjects) {
+        s->_observers.remove(this);
     }
 }
 
 
-void observer::notify(event *event) {
+void Observer::notify(Event *Event) {
 }
 
 
-void observer::subscribe(subject *s) {
-    subjects.push_back(s);
-    s->observers.push_back(this);
+void Observer::subscribe(Subject *s) {
+    _subjects.push_back(s);
+    s->_observers.push_back(this);
 }
 
 
-void observer::unsubscribe(subject *s) {
-    subjects.remove(s);
-    s->observers.remove(this);
+void Observer::unsubscribe(Subject *s) {
+    _subjects.remove(s);
+    s->_observers.remove(this);
 }
 
 
-subject::~subject() {
-    for (auto o : observers) {
-        o->subjects.remove(this);
+Subject::~Subject() {
+    for (auto o : _observers) {
+        o->_subjects.remove(this);
     }
 }
 
 
-void subject::notify(event *event) {
+void Subject::notify(Event *event) {
     event->source = this;
     event->consumed = false;
-    for (auto o : observers) {
+    for (auto o : _observers) {
         o->notify(event);
         if (event->consumed) {
             event->handler = o;

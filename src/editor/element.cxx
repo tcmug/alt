@@ -14,6 +14,10 @@ size_t Element::_determineLength(DrawContext *ctx) {
 	size_t length = ctx->_result->getLength();
 
 	switch (ctx->_stopCondition) {
+
+        case DrawContext::NONE:
+        break;
+
 		case DrawContext::POSITION: {
 			// Not on this row?
 			if (ctx->_row != ctx->_stopRow)
@@ -39,12 +43,15 @@ size_t Element::_determineLength(DrawContext *ctx) {
 				break;
 			}
 			// Scan x compoment by iterating over the string.
-			size_t col = ctx->_column - 1, a = 0, tempX = ctx->_x;
-			for (size_t i = 0; i < length + 1; i++) {
+            // Start at 1
+			size_t col = ctx->_column, a = 0, tempX = ctx->_x;
+			for (size_t i = 1; i < length + 1; i++) {
 				if (IS_PRINTABLE(at[i])) {
-					tempX += fl_width(&at[a], i-a);
+                    float charWidth = fl_width(&at[a], i-a);
+					tempX += charWidth;
 					a = i;
-					if (ctx->_stopX < tempX) {
+                    std::cout << "chr: " << ctx->_stopX << " < " << tempX - (charWidth / 2) << std::endl;
+					if (ctx->_stopX < tempX - (charWidth / 2)) {
 						// Got a match here.
 						length = i;
 						ctx->_stopColumn = col;
@@ -56,7 +63,6 @@ size_t Element::_determineLength(DrawContext *ctx) {
 				}
 			}
 			ctx->_column = col;
-
 		}
 		break;
 	}
@@ -101,9 +107,14 @@ size_t ElementTab::_determineLength(DrawContext *ctx) {
 	const char *at = ctx->_result->getAt();
 	size_t length = ctx->_result->getLength();
 
-	float rightEdge = (floor(ctx->_x / 50.0) + 1) * 50;
+    float charWidth = 50;
+	float rightEdge = (floor(ctx->_x / charWidth) + 1) * charWidth;
 
 	switch (ctx->_stopCondition) {
+
+        case DrawContext::NONE:
+        break;
+
 		case DrawContext::POSITION: {
 		}
 		break;
@@ -113,7 +124,10 @@ size_t ElementTab::_determineLength(DrawContext *ctx) {
 			if (ctx->_stopY >= ctx->_y) {
 				break;
 			}
-			if (ctx->_stopX >= ctx->_x && ctx->_stopX < rightEdge) {
+
+            std::cout << "tab: " << ctx->_stopX << " < " << rightEdge - (charWidth / 2) << std::endl;
+            // if (ctx->_stopX >= ctx->_x && ctx->_stopX < rightEdge - (charWidth / 2)) {
+			if (ctx->_stopX < rightEdge - (charWidth / 2)) {
 				ctx->_stopConditionMet = true;
 				ctx->_stopColumn = ctx->_column;
 				ctx->_stopRow = ctx->_row;

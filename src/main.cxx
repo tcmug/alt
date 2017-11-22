@@ -2,7 +2,6 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Widget.H>
-#include <FL/Fl_draw.H>
 #include <FL/Fl_Scroll.H>
 #include <FL/Fl_Sys_Menu_Bar.H>
 
@@ -10,7 +9,7 @@
 #include <stdio.h>
 #include <time.h>
 
-#include "editor/editor.hpp"
+#include "editor/Editor.h"
 
 
 void Quit_CB(Fl_Widget *, void *) {
@@ -28,7 +27,7 @@ int main() {
 		menu->add("Edit/Submenu/Bbb");
 
      	Fl_Scroll OhNo(0, 0, 220, 220);
-     	Editor tim(0, 0, 1000, 1000);
+     	Editor tim(0, 0, 1000, 10000000);
      	win.resizable(win);
 	win.end();
 	win.show();

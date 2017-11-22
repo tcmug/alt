@@ -6,6 +6,8 @@ FLTK_CONFIG = $(ROOT_DIR)/bin/fltk-config
 
 CC = $(shell $(FLTK_CONFIG) --cxx)
 
+# -stdlib=libc++ -mmacosx-version-min=10.11
+
 SYSCFLAGS = $(shell $(FLTK_CONFIG) --cxxflags) -Wall -O3 -pedantic -W -g -Wignored-qualifiers -std=c++11
 SYSLDFLAGS = -ffunction-sections -fdata-sections -dead_strip -std=c++11
 
