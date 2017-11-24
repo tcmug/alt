@@ -75,8 +75,8 @@ class Regtionary {
                     _next_node = NULL;
 
                     for (auto item : _current_node->_items) {
-                        std::smatch match;
-                        if (std::regex_search(std::string(_at), match, (*(*item)._regex))) {
+                        std::cmatch match;
+                        if (std::regex_search(_at, match, (*(*item)._regex))) {
                             size_t s = match.position(), l = match.length();
                             if (s < min_s && s <= max_length && s <= max_length && (s + l) <= max_length) {
                                 _next_node = item;
