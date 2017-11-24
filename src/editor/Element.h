@@ -25,6 +25,10 @@ class Element {
 
 class ElementNewLine: public Element {
 
+    protected:
+
+        virtual size_t _determineLength(DrawContext *ctx);
+
     public:
 
         ElementNewLine(): Element() {}

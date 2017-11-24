@@ -35,7 +35,25 @@ int Editor::handle(int e) {
             break;
 
         case FL_KEYDOWN:            // keyboard key pushed
-            insert(Fl::event_text(), Fl::event_length());
+            if (Fl::event_state() & FL_META) {
+                switch (Fl::event_text()[0]) {
+                    case '-':
+                        if (_fontSize > 5) {
+                            _fontSize--;
+                        }
+                        redraw();
+                    break;
+                    case '+':
+                        if (_fontSize < 100) {
+                            _fontSize++;
+                        }
+                        redraw();
+                    break;
+                }
+            }
+            else {
+                insert(Fl::event_text(), Fl::event_length());
+            }
             break;
 
         case FL_SHORTCUT:           // incase widget that isn't ours has focus
@@ -145,7 +163,10 @@ Point Editor::coordinateToPosition(const Point &coordinate) {
         }
     }
 
-    std::cout << ctx._column << " " << ctx._row << std::endl;
+    if (!ctx._stopConditionMet) {
+        // @FIXME: return value should be last line + columns
+        return Point(-1, -1);
+    }
 
     return Point(ctx._stopColumn, ctx._stopRow);
 }
@@ -180,21 +201,24 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 
     _fontSize = 20;
     _content = (char*)malloc(512);
-    strcpy(_content, "Hello->world!!\n日本国 -- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334");
+    strcpy(_content, "Hello->world!!\n日本国 --> x\r\n\r\n-- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334\r\n\r\nThis is the last line.");
 
     _format = new Formatting();
-    _format->getRoot()->setValue(new Element(0x808080));
+    _format->getRoot()->setValue(new Element(0xA0A0A000));
 
     Element *c2 = new Element(0x00FF0000);
+    Element *c3 = new Element(0xFFFF0000);
+    Element *c4 = new Element(0xFF00FF00);
+    Element *c5 = new Element(0x7030FF00);
     ElementNewLine *eol = new ElementNewLine(0xFF00FF00);
     ElementTab *tab = new ElementTab(0x80808000);
 
-    _format->insert("[\\r\\n]+", eol);
+    _format->insert("\\r?\\n", eol);
     _format->insert("\\t", tab);
     _format->insert("->", c2);
-    // _format->insert("[0-9]+", &c1);
-    // _format->insert("->", &c3);
-    // _format->insert("[-+*=\\/]", &c4);
+    _format->insert("[0-9]+", c5);
+    _format->insert("-->", c3);
+    _format->insert("[-+*=\\/]", c4);
 
     // Formatting::Node *tag = _format->insert("\\<!--", &c8, Formatting::ENTER);
     // tag->insert("[\\r\\n]+", &eol);
@@ -208,29 +232,3 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
     // php->insert("\\'[^\\']*\\'", &c7);
 
 }
-
-
-/*
-
-    wchar_t *src = L"World кошка 日本国";
-    char dst[256];
-
-    int rl = fl_utf8fromwc(dst, 256, src, 15);
-    printf("%s POS: %i\n", dst, wcsstr(src, L"к") - src);
-    printf("Length %i (%i)\n", strlen(dst), rl);
-
-    // std::locale old;
-    // std::locale::global(std::locale("en_US.UTF-8"));
-
-    std::regex pattern("(日|本国)+", std::regex_constants::extended);
-    bool result = std::regex_match(std::string("本国"), pattern);
-
-    // std::locale::global(old);
-
-    if (result) {
-        printf("Unicode!\n");
-    }
-
-    //content.read("testfile.txt");
-}
-*/

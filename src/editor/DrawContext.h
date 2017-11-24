@@ -24,6 +24,7 @@ class DrawContext {
             _row(1),
             _stopConditionMet(false),
             _stopCondition(NONE),
+            _stopExact(false),
             _stopColumn(0),
             _stopRow(0),
             _stopX(0),
@@ -47,6 +48,7 @@ class DrawContext {
 
         bool _stopConditionMet;
         StopCondition _stopCondition;
+        bool _stopExact;
         int _stopColumn, _stopRow;
         float _stopX, _stopY;
 
