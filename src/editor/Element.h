@@ -12,8 +12,6 @@ class Element {
         Fl_Color _color;
         Fl_Color _background;
 
-        virtual size_t _determineLength(DrawContext *ctx);
-
     public:
 
         Element(): _color(0), _background(0) {}
@@ -27,8 +25,6 @@ class ElementNewLine: public Element {
 
     protected:
 
-        virtual size_t _determineLength(DrawContext *ctx);
-
     public:
 
         ElementNewLine(): Element() {}
@@ -41,8 +37,6 @@ class ElementNewLine: public Element {
 
 class ElementTab: public Element {
     protected:
-
-        virtual size_t _determineLength(DrawContext *ctx);
 
     public:
 

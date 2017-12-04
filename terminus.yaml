@@ -44,3 +44,7 @@ make:
   commands:
   - make -j$make_concurrency ROOT="$root" CFLAGS="-I./dependencies/include" LDFLAGS="-L./dependencies/lib"
 
+remake:
+  commands:
+  - make clean
+  - make -j$make_concurrency ROOT="$root" CFLAGS="-I./dependencies/include" LDFLAGS="-L./dependencies/lib"

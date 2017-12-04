@@ -19,17 +19,18 @@ void Quit_CB(Fl_Widget *, void *) {
 // MAIN
 int main() {
 	 Fl::scheme("gleam");
-     Fl_Double_Window win(220, 220);
-     	Fl_Sys_Menu_Bar *menu = new Fl_Sys_Menu_Bar(0,0,400,25);
-		menu->add("File/Quit",   FL_CTRL+'q', Quit_CB);
-		menu->add("Edit/Change", FL_CTRL+'c', Quit_CB);
-		menu->add("variant/Submenu/Aaa");
-		menu->add("Edit/Submenu/Bbb");
+     Fl_Double_Window win(500, 500);
+  //    	Fl_Sys_Menu_Bar *menu = new Fl_Sys_Menu_Bar(0,0,400,25);
+		// menu->add("File/Quit",   FL_CTRL+'q', Quit_CB);
+		// menu->add("Edit/Change", FL_CTRL+'c', Quit_CB);
+		// menu->add("variant/Submenu/Aaa");
+		// menu->add("Edit/Submenu/Bbb");
 
-     	Fl_Scroll OhNo(0, 0, 220, 220);
-     	Editor tim(0, 0, 1000, 10000000);
-     	win.resizable(win);
-	win.end();
+     	Fl_Scroll scroll(0, 0, 500, 500);
+            Editor editor(0, 0, 1000, 1000);
+        scroll.end();
+    win.end();
+    win.resizable(editor);
 	win.show();
     return (Fl::run());
 }

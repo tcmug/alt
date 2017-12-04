@@ -23,9 +23,23 @@ int Editor::handle(int e) {
 
         case FL_PUSH: {
             Point pt(Fl::event_x(), Fl::event_y());
-            Point pos = coordinateToPosition(pt);
-            std::cout << pt._x << " " << pt._y << " >>> ";
-            std::cout << pos._x << " " << pos._y << std::endl;
+            DrawContext ctx = coordinateToContext(pt);
+            pt._x = ctx._x;
+            pt._y = ctx._y - ctx._charHeight;
+            pt._x -= x();
+            pt._y -= y();
+            //std::cout << "coord:\t" << ctx._x << " => " << ctx._stopRow << " " << ctx._stopColumn << std::endl;
+
+            pt.set(ctx._stopColumn, ctx._stopRow);
+            ctx = positionToContext(pt);
+            //std::cout << "\t=> " << ctx._stopX << " " << ctx._stopY << std::endl;
+
+            if (!(Fl::event_state() & FL_META)) {
+                carets.clear();
+            }
+            carets.push_back(Caret(0, Point(ctx._x, ctx._y + fl_descent() - fl_height()), Point(2, ctx._charHeight)));
+
+            redraw();
         }
         break;
 
@@ -52,6 +66,19 @@ int Editor::handle(int e) {
                 }
             }
             else {
+                // if (Fl::event_key() == FL_Down) {
+                //     position(x(), y()-5);
+                // }
+                // else if (Fl::event_key() == FL_Up) {
+                //     position(x(), y()+5);
+                // }
+                // else if (Fl::event_key() == FL_Left) {
+                //     position(x()-5, y());
+                // }
+                // else if (Fl::event_key() == FL_Right) {
+                //     position(x()+5, y());
+                // }
+                redraw();
                 insert(Fl::event_text(), Fl::event_length());
             }
             break;
@@ -77,9 +104,9 @@ int Editor::handle(int e) {
 
 
 void Editor::insert(const char *str, size_t length) {
-    printf("%s\n", str);
+    //printf("%s\n", str);
     for (auto &caret : carets) {
-        EditorEvent event(EditorEvent::INSERT_STRING, caret->position);
+        EditorEvent event(EditorEvent::INSERT_STRING, caret._position);
         notify(&event);
     }
 }
@@ -88,7 +115,7 @@ void Editor::insert(const char *str, size_t length) {
 
 void Editor::draw() {
 
-    fl_color(4);
+    fl_color(color());
     fl_rectf(x(), y(), w(), h());
 
     fl_font(_font, _fontSize);
@@ -99,25 +126,18 @@ void Editor::draw() {
     float sx = x();
     float sy = (float)y() - fl_descent() + fl_height();
 
-    DrawContext ctx(sx, sy, &res, &_lineStates);
+   // printf("%i\n", y());
+
+    DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
     ctx._leftMargin = sx;
 
     while (res.next()) {
         res.getCurrentNode()->getValue()->print(&ctx);
     }
 
-    // const char *s = "Hello日本国Worldкошка\u2424";
-    // size_t i, col, a = 0;
-    // for (col=i=0; s[i]; i++) {
-    //     if ((unsigned char)s[i] < 0x80 || (unsigned char)s[i] > 0xBF) {
-    //         fl_draw(&s[a], i-a, ctx._x, ctx._y);
-    //         ctx._x += fl_width(&s[a], i-a);
-    //         a = i;
-    //         col++;
-    //     }
-    // }
-
-
+    for (auto &caret : carets) {
+       caret.render(ctx);
+    }
 }
 
 
@@ -128,7 +148,7 @@ Point Editor::positionToCoordinate(const Point &position) {
     float sx = x();
     float sy = (float)y() - fl_descent() + fl_height();
 
-    DrawContext ctx(sx, sy, &res, &_lineStates);
+    DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
 
     ctx._render = false;
     ctx._leftMargin = sx;
@@ -137,6 +157,7 @@ Point Editor::positionToCoordinate(const Point &position) {
     while (res.next()) {
         res.getCurrentNode()->getValue()->print(&ctx);
     }
+
 }
 
 
@@ -148,7 +169,7 @@ Point Editor::coordinateToPosition(const Point &coordinate) {
     float sx = x();
     float sy = (float)y() - fl_descent() + fl_height();
 
-    DrawContext ctx(sx, sy, &res, &_lineStates);
+    DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
 
     ctx._render        = false;
     ctx._leftMargin    = sx;
@@ -172,11 +193,72 @@ Point Editor::coordinateToPosition(const Point &coordinate) {
 }
 
 
-void Editor::Timer_CB(void *userdata) {
-    Editor *o = (Editor*)userdata;
-    o->redraw();
-    Fl::repeat_timeout(0.1, Timer_CB, userdata);
+
+
+DrawContext Editor::coordinateToContext(const Point &coordinate) {
+
+    Formatting::Result res = _format->scan(_content);
+
+    float sx = x();
+    float sy = (float)y() - fl_descent() + fl_height();
+
+    DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
+
+    ctx._render        = false;
+    ctx._leftMargin    = sx;
+    ctx._stopCondition = DrawContext::COORDINATE;
+    ctx._stopX         = coordinate._x;
+    ctx._stopY         = coordinate._y;
+    ctx._stopExact     = false;
+
+    while (res.next()) {
+        res.getCurrentNode()->getValue()->print(&ctx);
+        if (ctx._stopConditionMet) {
+            break;
+        }
+    }
+
+    if (!ctx._stopConditionMet) {
+        // @FIXME: return value should be last line + columns
+        return ctx;
+    }
+
+    return ctx;
 }
+
+
+
+
+DrawContext Editor::positionToContext(const Point &position) {
+
+    Formatting::Result res = _format->scan(_content);
+
+    float sx = x();
+    float sy = (float)y() - fl_descent() + fl_height();
+
+    DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
+
+    ctx._render        = false;
+    ctx._leftMargin    = sx;
+    ctx._stopCondition = DrawContext::POSITION;
+    ctx._stopColumn    = position._x;
+    ctx._stopRow       = position._y;
+    ctx._stopExact     = false;
+
+    while (res.next()) {
+        res.getCurrentNode()->getValue()->print(&ctx);
+        if (ctx._stopConditionMet) {
+            break;
+        }
+    }
+
+    if (!ctx._stopConditionMet) {
+        return ctx;
+    }
+
+    return ctx;
+}
+
 
 
 Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
@@ -201,7 +283,7 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 
     _fontSize = 20;
     _content = (char*)malloc(512);
-    strcpy(_content, "Hello->world!!\n日本国 --> x\r\n\r\n-- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334\r\n\r\nThis is the last line.");
+    strcpy(_content, "Hello->world!!\n日本国 --> x\r\n\r\n-- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334\r\n\r\nThis is the last line.\r\nHi, it wasn't the last one afterall\t\t\tIT IS THIS ONE.");
 
     _format = new Formatting();
     _format->getRoot()->setValue(new Element(0xA0A0A000));

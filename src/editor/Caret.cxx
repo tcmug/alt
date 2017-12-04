@@ -3,21 +3,21 @@
 #include "DrawContext.h"
 #include "Editor.h"
 
+#include <FL/fl_draw.H>
 #include <algorithm>
 
-Caret::Caret(std::size_t _position, Point _screen, Point _extents):
-    screen(_screen),
-    position(_position),
-    extents(_extents) {
+Caret::Caret(std::size_t position, Point screen, Point extents):
+    _screen(screen),
+    _position(position),
+    _extents(extents) {
 }
 
 
 void Caret::render(DrawContext &tx) const {
-    //tx.dc->SetBrush(wxBrush(wxColour(0, 0, 0)));
-    // tx.dc->DrawRectangle(
-    //     screen._x, screen._y,
-    //     extents._x, extents._y
-    // );
+
+    fl_color(0xFFFF0000);
+    fl_rectf(tx._sx + _screen._x, tx._sy + _screen._y, _extents._x, _extents._y);
+
 }
 
 
@@ -26,11 +26,11 @@ void Caret::update() {
 }
 
 bool Caret::operator < (const Caret& other) const {
-    return (position < other.position);
+    return (_position < other._position);
 }
 
 bool Caret::operator == (const Caret& other) const {
-    return (position == other.position);
+    return (_position == other._position);
 }
 
 
@@ -46,9 +46,9 @@ void Caret::notify(Event *event_in) {
     switch (event->type) {
 
         case EditorEvent::MOVE_LEFT:
-            if (position == event->position) {
-                if (position > 0) {
-                    position--;
+            if (_position == event->position) {
+                if (_position > 0) {
+                    _position--;
                 }
                 //mark_dirty();
             }

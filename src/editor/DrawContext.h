@@ -10,14 +10,17 @@ class DrawContext {
     public:
 
         //DrawContext() {}
-        DrawContext(float x, float y, Formatting::Result *result, LineStates *lines):
+        DrawContext(float sx, float sy, float x, float y, Formatting::Result *result, LineStates *lines):
             _render(true),
+            _sx(sx),
+            _sy(sy),
             _x(x),
             _y(y),
             _leftMargin(0),
             _rightMargin(0),
             _topMargin(0),
             _bottomMargin(0),
+            _charHeight(0),
             _result(result),
             _lineStates(lines),
             _column(1),
@@ -38,9 +41,11 @@ class DrawContext {
         };
 
         bool _render;
+        float _sx, _sy;
         float _x, _y;
         float _leftMargin, _rightMargin;
         float _topMargin, _bottomMargin;
+        float _charHeight;
 
         int _column, _row;
         LineStates *_lineStates;

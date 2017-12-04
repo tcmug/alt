@@ -22,17 +22,17 @@ class Editor: public Fl_Widget, public Subject {
 
         char *_content;
         LineStates _lineStates;
-        std::vector <Caret*> carets;
+        std::vector <Caret> carets;
 
         int handle(int e);
         void draw();
-
-        static void Timer_CB(void *userdata);
 
         void insert(const char *str, size_t length);
 
         Point positionToCoordinate(const Point &position);
         Point coordinateToPosition(const Point &position);
+        DrawContext coordinateToContext(const Point &coordinate);
+        DrawContext positionToContext(const Point &coordinate);
 
     public:
 

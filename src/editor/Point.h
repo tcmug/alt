@@ -23,6 +23,11 @@ class Point {
             return Point(_x / other._x, _y / other._y);
         }
 
+        void set(const float &x, const float &y) {
+            _x = x;
+            _y = y;
+        }
+
         float _x, _y;
 
 };
