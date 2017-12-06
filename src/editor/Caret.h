@@ -8,22 +8,22 @@
 
 class Caret: public Observer {
 
-    public:
+	public:
 
-        Caret(std::size_t position, Point screen, Point extents);
-        void render(DrawContext &tx) const;
+		Caret(std::size_t position, Point screen, Point extents);
+		void render(DrawContext &tx) const;
 
-        std::size_t _position;
-        Point _screen;
-        Point _extents;
+		std::size_t _position;
+		Point _screen;
+		Point _extents;
 
-        bool operator < (const Caret& other) const;
-        bool operator == (const Caret& other) const;
+		bool operator < (const Caret& other) const;
+		bool operator == (const Caret& other) const;
 
-        void report();
-        void update();
+		void report();
+		void update();
 
-        void notify(Event *_event);
+		void notify(Event *_event);
 
 };
 

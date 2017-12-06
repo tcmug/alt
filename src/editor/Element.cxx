@@ -19,8 +19,8 @@ void Element::print(DrawContext *ctx) {
 
 	switch (ctx->_stopCondition) {
 
-        case DrawContext::NONE:
-        break;
+		case DrawContext::NONE:
+		break;
 
 		case DrawContext::POSITION: {
 			// Not on this row?
@@ -45,12 +45,12 @@ void Element::print(DrawContext *ctx) {
 			if (ctx->_stopY >= ctx->_y)
 				break;
 			// Scan x compoment by iterating over the string.
-            // Start at 1
+			// Start at 1
 			size_t col = ctx->_column, a = 0, tempX = ctx->_x;
 			for (size_t i = 1; i < length + 1; i++) {
 				if (IS_PRINTABLE(at[i])) {
-                    float charWidth = fl_width(&at[a], i-a);
-                    float offset = ctx->_stopExact ? 0 : (charWidth / 2);
+					float charWidth = fl_width(&at[a], i-a);
+					float offset = ctx->_stopExact ? 0 : (charWidth / 2);
 					tempX += charWidth;
 					a = i;
 					if (ctx->_stopX < tempX - offset) {
@@ -88,8 +88,8 @@ void ElementNewLine::print(DrawContext *ctx) {
 
 	switch (ctx->_stopCondition) {
 
-        case DrawContext::NONE:
-        break;
+		case DrawContext::NONE:
+		break;
 
 		case DrawContext::POSITION: {
 			// Not on this row?
@@ -136,14 +136,14 @@ void ElementTab::print(DrawContext *ctx) {
 	const char *at = ctx->_result->getAt();
 	size_t length = ctx->_result->getLength();
 
-    float charWidth = 50;
+	float charWidth = 50;
 	float rightEdge = ctx->_x + charWidth;
 	float offset = ctx->_stopExact ? 0 : charWidth / 2;
 
 	switch (ctx->_stopCondition) {
 
-        case DrawContext::NONE:
-        break;
+		case DrawContext::NONE:
+		break;
 
 		case DrawContext::POSITION: {
 			// Not on this row?

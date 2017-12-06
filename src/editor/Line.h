@@ -4,8 +4,8 @@
 #include <vector>
 
 class Line {
-    public:
-        const char *_start;
+	public:
+		const char *_start;
 
 };
 

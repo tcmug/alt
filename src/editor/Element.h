@@ -7,43 +7,43 @@ class DrawContext;
 
 class Element {
 
-    protected:
+	protected:
 
-        Fl_Color _color;
-        Fl_Color _background;
+		Fl_Color _color;
+		Fl_Color _background;
 
-    public:
+	public:
 
-        Element(): _color(0), _background(0) {}
-        Element(Fl_Color color): _color(color) {}
+		Element(): _color(0), _background(0) {}
+		Element(Fl_Color color): _color(color) {}
 
-        virtual void print(DrawContext *ctx);
+		virtual void print(DrawContext *ctx);
 
 };
 
 class ElementNewLine: public Element {
 
-    protected:
+	protected:
 
-    public:
+	public:
 
-        ElementNewLine(): Element() {}
-        ElementNewLine(Fl_Color color): Element(color) {}
+		ElementNewLine(): Element() {}
+		ElementNewLine(Fl_Color color): Element(color) {}
 
-        void print(DrawContext *ctx);
+		void print(DrawContext *ctx);
 
 };
 
 
 class ElementTab: public Element {
-    protected:
+	protected:
 
-    public:
+	public:
 
-        ElementTab(): Element() {}
-        ElementTab(Fl_Color color): Element(color) {}
+		ElementTab(): Element() {}
+		ElementTab(Fl_Color color): Element(color) {}
 
-        void print(DrawContext *ctx);
+		void print(DrawContext *ctx);
 
 };
 

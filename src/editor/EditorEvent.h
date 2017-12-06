@@ -7,25 +7,25 @@
 
 class EditorEvent: public Event {
 
-    public:
+	public:
 
-        enum TYPE {
-            INSERT_LINE,
-            INSERT_STRING,
-            ERASE_LINE,
-            ERASE_STRING,
-            MOVE_RIGHT,
-            MOVE_LEFT,
-            MOVE_UP,
-            MOVE_DOWN,
-        };
+		enum TYPE {
+			INSERT_LINE,
+			INSERT_STRING,
+			ERASE_LINE,
+			ERASE_STRING,
+			MOVE_RIGHT,
+			MOVE_LEFT,
+			MOVE_UP,
+			MOVE_DOWN,
+		};
 
-        EditorEvent(TYPE t, std::size_t pos): type(t), position(pos) {
-        }
+		EditorEvent(TYPE t, std::size_t pos): type(t), position(pos) {
+		}
 
-        TYPE type;
-        std::size_t position;
-        std::string string;
+		TYPE type;
+		std::size_t position;
+		std::string string;
 };
 
 #endif

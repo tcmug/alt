@@ -14,30 +14,30 @@
 
 class Editor: public Fl_Widget, public Subject {
 
-    private:
+	private:
 
-        Formatting *_format;
-        int _font;
-        int _fontSize;
+		Formatting *_format;
+		int _font;
+		int _fontSize;
 
-        char *_content;
-        LineStates _lineStates;
-        std::vector <Caret> carets;
+		char *_content;
+		LineStates _lineStates;
+		std::vector <Caret> carets;
 
-        int handle(int e);
-        void draw();
+		int handle(int e);
+		void draw();
 
-        void insert(const char *str, size_t length);
+		void insert(const char *str, size_t length);
 
-        Point positionToCoordinate(const Point &position);
-        Point coordinateToPosition(const Point &position);
-        DrawContext coordinateToContext(const Point &coordinate);
-        DrawContext positionToContext(const Point &coordinate);
+		Point positionToCoordinate(const Point &position);
+		Point coordinateToPosition(const Point &position);
+		DrawContext coordinateToContext(const Point &coordinate);
+		DrawContext positionToContext(const Point &coordinate);
 
-    public:
+	public:
 
-        // CONSTRUCTOR
-        Editor(int X, int Y, int W, int H, const char*L=0);
+		// CONSTRUCTOR
+		Editor(int X, int Y, int W, int H, const char*L=0);
 
 };
 
