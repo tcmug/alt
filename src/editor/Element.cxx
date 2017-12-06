@@ -46,7 +46,8 @@ void Element::print(DrawContext *ctx) {
 				break;
 			// Scan x compoment by iterating over the string.
 			// Start at 1
-			size_t col = ctx->_column, a = 0, tempX = ctx->_x;
+			size_t col = ctx->_column, a = 0;
+			float tempX = ctx->_x;
 			for (size_t i = 1; i < length + 1; i++) {
 				if (IS_PRINTABLE(at[i])) {
 					float charWidth = fl_width(&at[a], i-a);
@@ -67,9 +68,6 @@ void Element::print(DrawContext *ctx) {
 		}
 		break;
 	}
-
-
-
 
 	if (ctx->_render) {
 		fl_color(_color);

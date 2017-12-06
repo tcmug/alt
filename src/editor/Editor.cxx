@@ -24,20 +24,28 @@ int Editor::handle(int e) {
 		case FL_PUSH: {
 			Point pt(Fl::event_x(), Fl::event_y());
 			DrawContext ctx = coordinateToContext(pt);
-			pt._x = ctx._x;
-			pt._y = ctx._y - ctx._charHeight;
-			pt._x -= x();
-			pt._y -= y();
-			//std::cout << "coord:\t" << ctx._x << " => " << ctx._stopRow << " " << ctx._stopColumn << std::endl;
-
 			pt.set(ctx._stopColumn, ctx._stopRow);
 			ctx = positionToContext(pt);
-			//std::cout << "\t=> " << ctx._stopX << " " << ctx._stopY << std::endl;
-
 			if (!(Fl::event_state() & FL_META)) {
 				carets.clear();
 			}
-			carets.push_back(Caret(0, Point(ctx._x, ctx._y + fl_descent() - fl_height()), Point(2, ctx._charHeight)));
+
+			pt.set(
+				(-x()) + (ctx._x),
+				(-y()) + (ctx._y + fl_descent() - fl_height())
+			);
+
+			//std::cout << ctx._column << ":" << ctx._row << " -- " << x() << ":" << y() << " -- " << pt._x << " " << pt._y << std::endl;
+			carets.push_back(
+				Caret(
+					0,
+					pt,
+					Point(
+						2,
+						ctx._charHeight
+					)
+				)
+			);
 
 			redraw();
 		}
@@ -204,6 +212,9 @@ DrawContext Editor::coordinateToContext(const Point &coordinate) {
 
 	DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
 
+	std::cout << x() << " " << y() << " ";
+	std::cout << coordinate._x << " " << coordinate._y << std::endl;
+
 	ctx._render        = false;
 	ctx._leftMargin    = sx;
 	ctx._stopCondition = DrawContext::COORDINATE;
@@ -283,8 +294,8 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 
 	_fontSize = 20;
 	_content = (char*)malloc(512);
-	strcpy(_content, "Hello->world!!\n日本国 --> x\r\n\r\n-- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334\r\n\r\nThis is the last line.\r\nHi, it wasn't the last one afterall\t\t\tIT IS THIS ONE.");
-
+	strcpy(_content, "Hello->world!!\n日本国 --> x\n\n-- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334\n\nThis is the last line.\nHi, it wasn't the last one afterall\t\t\tIT IS THIS ONE.\n\n\nNo -- its this.");
+	//strcpy(_content, "\n#include <stdio.h>\n\n/* Comment */\n\nvoid main() {\n}\n");
 	_format = new Formatting();
 	_format->getRoot()->setValue(new Element(0xA0A0A000));
 
@@ -295,7 +306,7 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	ElementNewLine *eol = new ElementNewLine(0xFF00FF00);
 	ElementTab *tab = new ElementTab(0x80808000);
 
-	_format->insert("\\r?\\n", eol);
+	_format->insert("\\n", eol);
 	_format->insert("\\t", tab);
 	_format->insert("->", c2);
 	_format->insert("[0-9]+", c5);
