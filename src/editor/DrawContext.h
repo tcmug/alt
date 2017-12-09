@@ -23,6 +23,7 @@ class DrawContext {
 			_charHeight(0),
 			_result(result),
 			_lineStates(lines),
+			_position(0),
 			_column(1),
 			_row(1),
 			_stopConditionMet(false),
@@ -47,6 +48,7 @@ class DrawContext {
 		float _topMargin, _bottomMargin;
 		float _charHeight;
 
+		std::size_t _position;
 		int _column, _row;
 		LineStates *_lineStates;
 		Formatting::Result *_result;

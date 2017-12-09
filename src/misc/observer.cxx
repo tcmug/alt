@@ -7,7 +7,7 @@ Event::~Event() {
 
 
 void Event::consume() {
-    consumed = true;
+    _consumed = true;
 }
 
 
@@ -42,12 +42,12 @@ Subject::~Subject() {
 
 
 void Subject::notify(Event *event) {
-    event->source = this;
-    event->consumed = false;
+    event->_source = this;
+    event->_consumed = false;
     for (auto o : _observers) {
         o->notify(event);
-        if (event->consumed) {
-            event->handler = o;
+        if (event->_consumed) {
+            event->_handler = o;
             return;
         }
     }

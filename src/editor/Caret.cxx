@@ -41,16 +41,15 @@ void Caret::report() {
 void Caret::notify(Event *event_in) {
 
 	EditorEvent *event = static_cast<EditorEvent*>(event_in);
-	Editor *source = static_cast<Editor*>(event->source);
+	Editor *source = static_cast<Editor*>(event->_source);
 
-	switch (event->type) {
+	switch (event->_type) {
 
 		case EditorEvent::MOVE_LEFT:
-			if (_position == event->position) {
+			if (_position == event->_position) {
 				if (_position > 0) {
 					_position--;
 				}
-				//mark_dirty();
 			}
 		break;
 /*
@@ -96,13 +95,12 @@ void Caret::notify(Event *event_in) {
 				//mark_dirty();
 			}
 		break;
-
+*/
 		case EditorEvent::INSERT_STRING:
-			if (position >= event->position) {
-				position += event->string.length();
-				//mark_dirty();
+			if (_position >= event->_position) {
+				_position += event->_string.length();
 			}
 		break;
-	*/
+
 	}
 }

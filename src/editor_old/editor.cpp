@@ -425,7 +425,7 @@ void EditView::erase() {
 
 void EditView::insert(std::wstring str) {
     for (auto &caret : carets) {
-        content.insert(caret->position, str);
+        _content.insert(caret->position, str);
         editor_event event(editor_event::INSERT_STRING, caret->position);
         event.string = str;
         notify(&event);

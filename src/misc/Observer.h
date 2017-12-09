@@ -13,14 +13,14 @@ class Event {
 
     private:
 
-        bool consumed;
+        bool _consumed;
 
     public:
 
         virtual ~Event();
 
-        Subject *source;
-        Observer *handler;
+        Subject *_source;
+        Observer *_handler;
 
         void consume();
 

@@ -20,12 +20,12 @@ class EditorEvent: public Event {
 			MOVE_DOWN,
 		};
 
-		EditorEvent(TYPE t, std::size_t pos): type(t), position(pos) {
+		EditorEvent(TYPE t, std::size_t pos): _type(t), _position(pos) {
 		}
 
-		TYPE type;
-		std::size_t position;
-		std::string string;
+		TYPE _type;
+		std::size_t _position;
+		std::string _string;
 };
 
 #endif

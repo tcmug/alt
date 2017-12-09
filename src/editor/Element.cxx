@@ -74,6 +74,7 @@ void Element::print(DrawContext *ctx) {
 		fl_draw(at, length, ctx->_x, ctx->_y);
 	}
 
+	ctx->_position += length;
 	ctx->_x += fl_width(at, length);
 }
 
@@ -97,8 +98,6 @@ void ElementNewLine::print(DrawContext *ctx) {
 			ctx->_stopConditionMet = true;
 			ctx->_stopColumn = ctx->_column;
 			ctx->_stopRow = ctx->_row;
-
-			length = 0;
 		}
 		return;
 
@@ -119,7 +118,7 @@ void ElementNewLine::print(DrawContext *ctx) {
 	// 	fl_color(_color);
 	// 	fl_draw("\u2424", ctx->_x, ctx->_y);
 	// }
-
+	ctx->_position += length;
 	ctx->_row++;
 	ctx->_column = 1;
 	ctx->_x = ctx->_leftMargin;
@@ -174,6 +173,7 @@ void ElementTab::print(DrawContext *ctx) {
 		break;
 	}
 
+	ctx->_position += length;
 	ctx->_x = ctx->_x + (length * 50);
 }
 

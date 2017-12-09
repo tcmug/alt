@@ -5,8 +5,8 @@
 #include "Caret.h"
 #include "Point.h"
 #include "Line.h"
+#include "File.h"
 #include "../misc/Observer.h"
-
 
 #include <FL/Fl.H>
 #include <FL/Fl_Widget.H>
@@ -20,9 +20,9 @@ class Editor: public Fl_Widget, public Subject {
 		int _font;
 		int _fontSize;
 
-		char *_content;
+		File _file;
 		LineStates _lineStates;
-		std::vector <Caret> carets;
+		std::vector <Caret*> _carets;
 
 		int handle(int e);
 		void draw();
@@ -33,6 +33,9 @@ class Editor: public Fl_Widget, public Subject {
 		Point coordinateToPosition(const Point &position);
 		DrawContext coordinateToContext(const Point &coordinate);
 		DrawContext positionToContext(const Point &coordinate);
+
+		void clearCarets();
+		void addCaret(Caret *caret);
 
 	public:
 

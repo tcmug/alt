@@ -16,6 +16,12 @@
 
 
 
+
+bool compareCaret(Caret &a, Caret &b) {
+    return (a._position < b._position);
+}
+
+
 int Editor::handle(int e) {
 	int ret = Fl_Widget::handle(e);
 
@@ -23,11 +29,15 @@ int Editor::handle(int e) {
 
 		case FL_PUSH: {
 			Point pt(Fl::event_x(), Fl::event_y());
+
 			DrawContext ctx = coordinateToContext(pt);
+
 			pt.set(ctx._stopColumn, ctx._stopRow);
+
 			ctx = positionToContext(pt);
+
 			if (!(Fl::event_state() & FL_META)) {
-				carets.clear();
+				clearCarets();
 			}
 
 			pt.set(
@@ -35,17 +45,14 @@ int Editor::handle(int e) {
 				(-y()) + (ctx._y + fl_descent() - fl_height())
 			);
 
-			//std::cout << ctx._column << ":" << ctx._row << " -- " << x() << ":" << y() << " -- " << pt._x << " " << pt._y << std::endl;
-			carets.push_back(
-				Caret(
-					0,
+			addCaret(new Caret(
+					ctx._position,
 					pt,
 					Point(
 						2,
 						ctx._charHeight
 					)
-				)
-			);
+			));
 
 			redraw();
 		}
@@ -112,9 +119,15 @@ int Editor::handle(int e) {
 
 
 void Editor::insert(const char *str, size_t length) {
-	//printf("%s\n", str);
-	for (auto &caret : carets) {
-		EditorEvent event(EditorEvent::INSERT_STRING, caret._position);
+	int i = 1;
+
+	EditorEvent event(EditorEvent::INSERT_STRING, 0);
+	event._string = str;
+
+	for (auto caret : _carets) {
+		//std::cout << i++ << ". " << caret._position << " " << std::endl;
+		event._position = caret->_position;
+		_file.insert(caret->_position, str);
 		notify(&event);
 	}
 }
@@ -129,7 +142,7 @@ void Editor::draw() {
 	fl_font(_font, _fontSize);
 	fl_color(7);
 
-	Formatting::Result res = _format->scan(_content);
+	Formatting::Result res = _format->scan(_file.getContent());
 
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
@@ -143,15 +156,15 @@ void Editor::draw() {
 		res.getCurrentNode()->getValue()->print(&ctx);
 	}
 
-	for (auto &caret : carets) {
-	   caret.render(ctx);
+	for (auto caret : _carets) {
+	   caret->render(ctx);
 	}
 }
 
 
 Point Editor::positionToCoordinate(const Point &position) {
 
-	Formatting::Result res = _format->scan(_content);
+	Formatting::Result res = _format->scan(_file.getContent());
 
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
@@ -172,7 +185,7 @@ Point Editor::positionToCoordinate(const Point &position) {
 
 Point Editor::coordinateToPosition(const Point &coordinate) {
 
-	Formatting::Result res = _format->scan(_content);
+	Formatting::Result res = _format->scan(_file.getContent());
 
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
@@ -205,7 +218,7 @@ Point Editor::coordinateToPosition(const Point &coordinate) {
 
 DrawContext Editor::coordinateToContext(const Point &coordinate) {
 
-	Formatting::Result res = _format->scan(_content);
+	Formatting::Result res = _format->scan(_file.getContent());
 
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
@@ -242,7 +255,7 @@ DrawContext Editor::coordinateToContext(const Point &coordinate) {
 
 DrawContext Editor::positionToContext(const Point &position) {
 
-	Formatting::Result res = _format->scan(_content);
+	Formatting::Result res = _format->scan(_file.getContent());
 
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
@@ -293,8 +306,11 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	}
 
 	_fontSize = 20;
-	_content = (char*)malloc(512);
-	strcpy(_content, "Hello->world!!\n日本国 --> x\n\n-- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334\n\nThis is the last line.\nHi, it wasn't the last one afterall\t\t\tIT IS THIS ONE.\n\n\nNo -- its this.");
+
+	_file.read("testfile.txt");
+
+	// _content = (char*)malloc(512);
+	// strcpy(_content, "Hello->world!!\n日本国 --> x\n\n-- $this->\nroy->日本国->Hello->кошка->кошка->$there - 200;\n\t<?php\n\t\t\"hello\"\n\t?>\nuh->oh\n\n\t1\t2\t3\n\t10\t20\t30\n\t505\t545\t334\n\nThis is the last line.\nHi, it wasn't the last one afterall\t\t\tIT IS THIS ONE.\n\n\nNo -- its this.");
 	//strcpy(_content, "\n#include <stdio.h>\n\n/* Comment */\n\nvoid main() {\n}\n");
 	_format = new Formatting();
 	_format->getRoot()->setValue(new Element(0xA0A0A000));
@@ -325,3 +341,20 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	// php->insert("\\'[^\\']*\\'", &c7);
 
 }
+
+
+void Editor::clearCarets() {
+	for (auto caret : _carets) {
+		delete caret;
+	}
+	_carets.clear();
+}
+
+
+void Editor::addCaret(Caret *caret) {
+	_carets.push_back(caret);
+	_carets[_carets.size()-1]->subscribe(this);
+    std::sort(_carets.begin(), _carets.end());
+}
+
+
