@@ -27,7 +27,7 @@ int main() {
 		// menu->add("Edit/Submenu/Bbb");
 
      	Fl_Scroll scroll(0, 0, 500, 500);
-            Editor editor(0, 0, 1000, 1000);
+            Editor editor(0, 0, 1000, 2000);
         scroll.end();
     win.end();
     win.resizable(editor);

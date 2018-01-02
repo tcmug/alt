@@ -28,6 +28,7 @@ class DrawContext {
 			_row(1),
 			_stopConditionMet(false),
 			_stopCondition(NONE),
+			_stopPosition(0),
 			_stopExact(false),
 			_stopColumn(0),
 			_stopRow(0),
@@ -37,8 +38,9 @@ class DrawContext {
 
 		enum StopCondition {
 			NONE,
-			POSITION,
-			COORDINATE
+			CARET,
+			COORDINATE,
+			POSITION
 		};
 
 		bool _render;
@@ -49,12 +51,15 @@ class DrawContext {
 		float _charHeight;
 
 		std::size_t _position;
+
 		int _column, _row;
+
 		LineStates *_lineStates;
 		Formatting::Result *_result;
 
 		bool _stopConditionMet;
 		StopCondition _stopCondition;
+		std::size_t _stopPosition;
 		bool _stopExact;
 		int _stopColumn, _stopRow;
 		float _stopX, _stopY;

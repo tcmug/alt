@@ -22,7 +22,7 @@ void Element::print(DrawContext *ctx) {
 		case DrawContext::NONE:
 		break;
 
-		case DrawContext::POSITION: {
+		case DrawContext::CARET: {
 			// Not on this row?
 			if (ctx->_row != ctx->_stopRow)
 				break;
@@ -67,9 +67,30 @@ void Element::print(DrawContext *ctx) {
 			ctx->_column = col;
 		}
 		break;
+
+		case DrawContext::POSITION: {
+			if ((ctx->_stopPosition - ctx->_position) <= length) {
+				length = ctx->_stopPosition - ctx->_position;
+				ctx->_stopConditionMet = true;
+			}
+			// Not on this row?
+			if (ctx->_stopY >= ctx->_y)
+				break;
+
+			for (size_t i = 0; i < length; i++) {
+				if (IS_PRINTABLE(at[i])) {
+					ctx->_column++;
+				}
+			}
+			if (ctx->_stopConditionMet) {
+				ctx->_stopColumn = ctx->_column;
+				ctx->_stopRow = ctx->_row;
+			}
+		}
+		break;
 	}
 
-	if (ctx->_render) {
+	if (ctx->_render && ctx->_y > 0) {
 		fl_color(_color);
 		fl_draw(at, length, ctx->_x, ctx->_y);
 	}
@@ -90,14 +111,12 @@ void ElementNewLine::print(DrawContext *ctx) {
 		case DrawContext::NONE:
 		break;
 
-		case DrawContext::POSITION: {
+		case DrawContext::CARET: {
 			// Not on this row?
 			if (ctx->_row != ctx->_stopRow)
 				break;
 
 			ctx->_stopConditionMet = true;
-			ctx->_stopColumn = ctx->_column;
-			ctx->_stopRow = ctx->_row;
 		}
 		return;
 
@@ -112,6 +131,32 @@ void ElementNewLine::print(DrawContext *ctx) {
 			ctx->_column++;
 		}
 		break;
+
+		case DrawContext::POSITION: {
+
+			if ((ctx->_stopPosition - ctx->_position) <= length) {
+				length = ctx->_stopPosition - ctx->_position;
+				ctx->_stopConditionMet = true;
+			}
+
+			// Not on this row?
+			if (ctx->_stopY >= ctx->_y)
+				break;
+
+			const char *at = ctx->_result->getAt();
+
+			for (size_t i = 0; i < length; i++) {
+				if (IS_PRINTABLE(at[i])) {
+					ctx->_column++;
+				}
+			}
+			if (ctx->_stopConditionMet) {
+				ctx->_stopColumn = ctx->_column;
+				ctx->_stopRow = ctx->_row;
+			}
+		}
+		break;
+
 	}
 
 	// if (ctx->_render) {
@@ -142,7 +187,7 @@ void ElementTab::print(DrawContext *ctx) {
 		case DrawContext::NONE:
 		break;
 
-		case DrawContext::POSITION: {
+		case DrawContext::CARET: {
 			// Not on this row?
 			if (ctx->_row != ctx->_stopRow)
 				break;
@@ -171,6 +216,32 @@ void ElementTab::print(DrawContext *ctx) {
 			ctx->_column++;
 		}
 		break;
+
+		case DrawContext::POSITION: {
+			if ((ctx->_stopPosition - ctx->_position) <= length) {
+				length = ctx->_stopPosition - ctx->_position;
+				ctx->_stopConditionMet = true;
+			}
+
+			// Not on this row?
+			if (ctx->_stopY >= ctx->_y)
+				break;
+
+			const char *at = ctx->_result->getAt();
+
+			for (size_t i = 0; i < length; i++) {
+				if (IS_PRINTABLE(at[i])) {
+					ctx->_column++;
+				}
+			}
+			if (ctx->_stopConditionMet) {
+				ctx->_stopColumn = ctx->_column;
+				ctx->_stopRow = ctx->_row;
+			}
+
+		}
+		break;
+
 	}
 
 	ctx->_position += length;

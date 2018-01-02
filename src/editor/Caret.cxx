@@ -6,10 +6,11 @@
 #include <FL/fl_draw.H>
 #include <algorithm>
 
-Caret::Caret(std::size_t position, Point screen, Point extents):
-	_screen(screen),
+Caret::Caret(std::size_t position, Point screen, Point extents, Point caret):
 	_position(position),
-	_extents(extents) {
+	_screen(screen),
+	_extents(extents),
+	_caret(caret) {
 }
 
 
@@ -24,6 +25,13 @@ void Caret::render(DrawContext &tx) const {
 void Caret::update() {
 
 }
+
+
+void Caret::copyFromContext(DrawContext &ctx) {
+	_position = ctx._position;
+	_caret.set(ctx._column, ctx._row);
+}
+
 
 bool Caret::operator < (const Caret& other) const {
 	return (_position < other._position);
@@ -49,43 +57,38 @@ void Caret::notify(Event *event_in) {
 			if (_position == event->_position) {
 				if (_position > 0) {
 					_position--;
+					markDirty();
 				}
 			}
 		break;
-/*
+
 		case EditorEvent::MOVE_RIGHT:
-			if (position == event->position) {
-				if (position < source->content.get_length() - 1) {
-					position++;
+			if (_position == event->_position) {
+				if (_position < source->_file.getLength() - 1) {
+					_position++;
+					markDirty();
 				}
-				//mark_dirty();
 			}
 		break;
 
 		case EditorEvent::MOVE_UP:
-			if (position == event->position) {
-				std::size_t line = source->content.position_to_line(position);
-				std::size_t col = source->content.position_to_column(position);
-				if (line > 0) {
-					line--;
-					position = source->content.line_to_position(line) + std::min(col, source->content.get_line_length(line));
-					//mark_dirty();
-				}
+			if (_position == event->_position) {
+				Point caret(_caret._x, _caret._y - 1);
+				DrawContext ctx = source->caretToContext(caret);
+				_position = ctx._position;
+				markDirty();
 			}
 		break;
 
 		case EditorEvent::MOVE_DOWN:
-			if (position == event->position) {
-				std::size_t line = source->content.position_to_line(position);
-				std::size_t col = source->content.position_to_column(position);
-				if (line < source->content.number_of_lines() - 1) {
-					line++;
-					position = source->content.line_to_position(line) + std::min(col, source->content.get_line_length(line));
-					//mark_dirty();
-				}
+			if (_position == event->_position) {
+				Point caret(_caret._x, _caret._y + 1);
+				DrawContext ctx = source->caretToContext(caret);
+				_position = ctx._position;
+				markDirty();
 			}
 		break;
-
+/*
 		case EditorEvent::ERASE_STRING:
 			if (position >= event->position) {
 				if (position > event->string.length())
@@ -100,6 +103,7 @@ void Caret::notify(Event *event_in) {
 			if (_position >= event->_position) {
 				_position += event->_string.length();
 			}
+			markDirty();
 		break;
 
 	}

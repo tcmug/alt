@@ -28,19 +28,19 @@ int Editor::handle(int e) {
 	switch (e) {
 
 		case FL_PUSH: {
-			Point pt(Fl::event_x(), Fl::event_y());
+			Point caret(Fl::event_x(), Fl::event_y());
 
-			DrawContext ctx = coordinateToContext(pt);
+			DrawContext ctx = coordinateToContext(caret);
 
-			pt.set(ctx._stopColumn, ctx._stopRow);
+			caret.set(ctx._stopColumn, ctx._stopRow);
 
-			ctx = positionToContext(pt);
+			ctx = caretToContext(caret);
 
 			if (!(Fl::event_state() & FL_META)) {
 				clearCarets();
 			}
 
-			pt.set(
+			Point pt(
 				(-x()) + (ctx._x),
 				(-y()) + (ctx._y + fl_descent() - fl_height())
 			);
@@ -51,7 +51,8 @@ int Editor::handle(int e) {
 					Point(
 						2,
 						ctx._charHeight
-					)
+					),
+					caret
 			));
 
 			redraw();
@@ -81,21 +82,28 @@ int Editor::handle(int e) {
 				}
 			}
 			else {
-				// if (Fl::event_key() == FL_Down) {
-				//     position(x(), y()-5);
-				// }
-				// else if (Fl::event_key() == FL_Up) {
-				//     position(x(), y()+5);
-				// }
-				// else if (Fl::event_key() == FL_Left) {
-				//     position(x()-5, y());
-				// }
-				// else if (Fl::event_key() == FL_Right) {
-				//     position(x()+5, y());
-				// }
+				if (Fl::event_key() == FL_Down) {
+					down();
+				}
+				else if (Fl::event_key() == FL_Up) {
+					up();
+				}
+				else if (Fl::event_key() == FL_Left) {
+					left();
+				}
+				else if (Fl::event_key() == FL_Right) {
+					right();
+				}
+				else if (Fl::event_text()[0] == '\r') {
+					insert("\n", 1);
+				}
+				else {
+					insert(Fl::event_text(), Fl::event_length());
+				}
 				redraw();
-				insert(Fl::event_text(), Fl::event_length());
+				//std::cout << Fl::event_text() << std::endl;
 			}
+			ret = 1;
 			break;
 
 		case FL_SHORTCUT:           // incase widget that isn't ours has focus
@@ -103,10 +111,15 @@ int Editor::handle(int e) {
 		   // printf("%s\n"s Fl::event_text());
 			break;
 
-
 		case FL_ENTER:
-			ret = 1; // FL_ENTER: must return(1) to receive FL_MOVE
+			window()->cursor(FL_CURSOR_INSERT);
+			ret = 1;
 			break;
+
+		case FL_LEAVE:
+            window()->cursor(FL_CURSOR_DEFAULT);
+            ret = 1;
+            break;
 
 		case FL_MOVE:
 			//printf("x=%d y=%d\n", (int)Fl::event_x(), (int)Fl::event_y());
@@ -125,13 +138,49 @@ void Editor::insert(const char *str, size_t length) {
 	event._string = str;
 
 	for (auto caret : _carets) {
-		//std::cout << i++ << ". " << caret._position << " " << std::endl;
 		event._position = caret->_position;
 		_file.insert(caret->_position, str);
 		notify(&event);
 	}
 }
 
+
+void Editor::left() {
+	EditorEvent event(EditorEvent::MOVE_LEFT, 0);
+	for (auto caret : _carets) {
+		event._position = caret->_position;
+		notify(&event);
+	}
+}
+
+
+void Editor::right() {
+	EditorEvent event(EditorEvent::MOVE_RIGHT, 0);
+	for (auto caret : _carets) {
+		event._position = caret->_position;
+		notify(&event);
+	}
+}
+
+
+void Editor::up() {
+	EditorEvent event(EditorEvent::MOVE_UP, 0);
+	for (auto caret : _carets) {
+		event._position = caret->_position;
+		notify(&event);
+	}
+}
+
+
+void Editor::down() {
+	EditorEvent event(EditorEvent::MOVE_DOWN, 0);
+	for (auto caret : _carets) {
+		event._position = caret->_position;
+		notify(&event);
+	}
+
+	std::cout << std::endl;
+}
 
 
 void Editor::draw() {
@@ -147,72 +196,30 @@ void Editor::draw() {
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
 
-   // printf("%i\n", y());
-
 	DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
 	ctx._leftMargin = sx;
 
 	while (res.next()) {
 		res.getCurrentNode()->getValue()->print(&ctx);
-	}
-
-	for (auto caret : _carets) {
-	   caret->render(ctx);
-	}
-}
-
-
-Point Editor::positionToCoordinate(const Point &position) {
-
-	Formatting::Result res = _format->scan(_file.getContent());
-
-	float sx = x();
-	float sy = (float)y() - fl_descent() + fl_height();
-
-	DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
-
-	ctx._render = false;
-	ctx._leftMargin = sx;
-	ctx._stopCondition = DrawContext::POSITION;
-
-	while (res.next()) {
-		res.getCurrentNode()->getValue()->print(&ctx);
-	}
-
-}
-
-
-
-Point Editor::coordinateToPosition(const Point &coordinate) {
-
-	Formatting::Result res = _format->scan(_file.getContent());
-
-	float sx = x();
-	float sy = (float)y() - fl_descent() + fl_height();
-
-	DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
-
-	ctx._render        = false;
-	ctx._leftMargin    = sx;
-	ctx._stopCondition = DrawContext::COORDINATE;
-	ctx._stopX         = coordinate._x;
-	ctx._stopY         = coordinate._y;
-
-	while (res.next()) {
-		res.getCurrentNode()->getValue()->print(&ctx);
-		if (ctx._stopConditionMet) {
+		// No need to render past the bottom screen.
+		if (ctx._y > parent()->h()) {
 			break;
 		}
 	}
 
-	if (!ctx._stopConditionMet) {
-		// @FIXME: return value should be last line + columns
-		return Point(-1, -1);
+	for (auto &caret : _carets) {
+		if (caret->isDirty()) {
+			DrawContext tctx = positionToContext(caret->_position);
+			caret->_screen.set(
+				(-x()) + (tctx._x),
+				(-y()) + (tctx._y + fl_descent() - fl_height())
+			);
+			caret->_caret.set(tctx._stopColumn, tctx._stopRow);
+			caret->markClean();
+		}
+		caret->render(ctx);
 	}
-
-	return Point(ctx._stopColumn, ctx._stopRow);
 }
-
 
 
 
@@ -224,9 +231,6 @@ DrawContext Editor::coordinateToContext(const Point &coordinate) {
 	float sy = (float)y() - fl_descent() + fl_height();
 
 	DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
-
-	std::cout << x() << " " << y() << " ";
-	std::cout << coordinate._x << " " << coordinate._y << std::endl;
 
 	ctx._render        = false;
 	ctx._leftMargin    = sx;
@@ -253,7 +257,41 @@ DrawContext Editor::coordinateToContext(const Point &coordinate) {
 
 
 
-DrawContext Editor::positionToContext(const Point &position) {
+DrawContext Editor::caretToContext(const Point &caretPosition) {
+
+	Formatting::Result res = _format->scan(_file.getContent());
+
+	float sx = x();
+	float sy = (float)y() - fl_descent() + fl_height();
+
+	DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
+
+	ctx._render        = false;
+	ctx._leftMargin    = sx;
+	ctx._stopCondition = DrawContext::CARET;
+	ctx._stopColumn    = caretPosition._x;
+	ctx._stopRow       = caretPosition._y;
+	ctx._stopExact     = false;
+
+	while (res.next()) {
+		res.getCurrentNode()->getValue()->print(&ctx);
+		if (ctx._stopConditionMet) {
+			break;
+		}
+	}
+
+	if (!ctx._stopConditionMet) {
+		return ctx;
+	}
+
+	return ctx;
+}
+
+
+
+
+
+DrawContext Editor::positionToContext(std::size_t position) {
 
 	Formatting::Result res = _format->scan(_file.getContent());
 
@@ -265,8 +303,7 @@ DrawContext Editor::positionToContext(const Point &position) {
 	ctx._render        = false;
 	ctx._leftMargin    = sx;
 	ctx._stopCondition = DrawContext::POSITION;
-	ctx._stopColumn    = position._x;
-	ctx._stopRow       = position._y;
+	ctx._stopPosition  = position;
 	ctx._stopExact     = false;
 
 	while (res.next()) {
@@ -287,8 +324,10 @@ DrawContext Editor::positionToContext(const Point &position) {
 
 Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	box(FL_FLAT_BOX);
-	color(4);
+	color(2);
 
+	_font = FL_COURIER;
+/*
 	std::map <std::string, int> fonts;
 
 	int i, k = Fl::set_fonts("-*"), t;
@@ -304,8 +343,8 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	else {
 		_font = FL_COURIER;
 	}
-
-	_fontSize = 20;
+*/
+	_fontSize = 14;
 
 	_file.read("testfile.txt");
 
@@ -314,7 +353,13 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	//strcpy(_content, "\n#include <stdio.h>\n\n/* Comment */\n\nvoid main() {\n}\n");
 	_format = new Formatting();
 	_format->getRoot()->setValue(new Element(0xA0A0A000));
-
+	ElementNewLine *eol = new ElementNewLine(0xFF00FF00);
+	Element *c5 = new Element(0x7030FF00);
+	ElementTab *tab = new ElementTab(0x80808000);
+	_format->insert("\\n", eol);
+	// _format->insert("\\t", tab);
+	// _format->insert("[0-9]+", c5);
+	/*
 	Element *c2 = new Element(0x00FF0000);
 	Element *c3 = new Element(0xFFFF0000);
 	Element *c4 = new Element(0xFF00FF00);
@@ -328,7 +373,7 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	_format->insert("[0-9]+", c5);
 	_format->insert("-->", c3);
 	_format->insert("[-+*=\\/]", c4);
-
+*/
 	// Formatting::Node *tag = _format->insert("\\<!--", &c8, Formatting::ENTER);
 	// tag->insert("[\\r\\n]+", &eol);
 	// tag->insert("-->", &c8, Formatting::DROP);

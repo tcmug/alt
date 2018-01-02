@@ -14,6 +14,8 @@
 
 class Editor: public Fl_Widget, public Subject {
 
+	friend class Caret;
+
 	private:
 
 		Formatting *_format;
@@ -28,11 +30,14 @@ class Editor: public Fl_Widget, public Subject {
 		void draw();
 
 		void insert(const char *str, size_t length);
+		void left();
+		void right();
+		void up();
+		void down();
 
-		Point positionToCoordinate(const Point &position);
-		Point coordinateToPosition(const Point &position);
 		DrawContext coordinateToContext(const Point &coordinate);
-		DrawContext positionToContext(const Point &coordinate);
+		DrawContext caretToContext(const Point &coordinate);
+		DrawContext positionToContext(std::size_t position);
 
 		void clearCarets();
 		void addCaret(Caret *caret);

@@ -43,8 +43,8 @@ class Regtionary {
 
                     // SPECIAL CASE: Already matched a node.
                     if (_next_node) {
-                    // FIRST: from _at until _at + _length with current_node
-                    // SECOND: from _at + _length until _at + _length + _match_length
+                        // FIRST: from _at until _at + _length with current_node
+                        // SECOND: from _at + _length until _at + _length + _match_length
                         _at += _length;
                         _length = _match_length;
                         _current_node = _next_node;
@@ -118,10 +118,6 @@ class Regtionary {
                     return _previous_node;
                 }
 
-                // const std::string &getSnip() const {
-                //     return _snip;
-                // }
-
                 const char *getAt() const {
                     return _at;
                 }
@@ -160,7 +156,6 @@ class Regtionary {
                 Node(std::string re, VALUE value, NODETYPE t) {
                     _re = re;
                     _regex = new std::regex(_re);
-                    //_regex = new wxRegEx(_re.c_str(), wxRE_ADVANCED);
                     _value = value;
                     _type = t;
                 }
@@ -169,16 +164,6 @@ class Regtionary {
 
                 Node():  _type(ROOT), _parent(NULL) {
                 }
-
-                // virtual void print(int depth = 0) {
-                //     for (auto item : _items) {
-                //         std::string padding(depth * 2, ' ');
-                //         std::cout << padding << (*item)._re << std::endl;
-                //         if ((*item)._items.size() > 0) {
-                //             (*item).print(depth + 1 );
-                //         }
-                //     }
-                // }
 
                 virtual bool last() {
                     return _items.size() == 0;
