@@ -324,7 +324,7 @@ DrawContext Editor::positionToContext(std::size_t position) {
 
 Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	box(FL_FLAT_BOX);
-	color(2);
+	color(0);
 
 	_font = FL_COURIER;
 /*
@@ -354,11 +354,11 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	_format = new Formatting();
 	_format->getRoot()->setValue(new Element(0xA0A0A000));
 	ElementNewLine *eol = new ElementNewLine(0xFF00FF00);
-	Element *c5 = new Element(0x7030FF00);
-	ElementTab *tab = new ElementTab(0x80808000);
-	_format->insert("\\n", eol);
-	// _format->insert("\\t", tab);
-	// _format->insert("[0-9]+", c5);
+	Element *c2 = new Element(0x00FF0000);
+	_format->insert("\n", eol);
+
+	_format->insert("Permission", c2);
+
 	/*
 	Element *c2 = new Element(0x00FF0000);
 	Element *c3 = new Element(0xFFFF0000);

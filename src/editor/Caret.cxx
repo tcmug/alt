@@ -5,12 +5,18 @@
 
 #include <FL/fl_draw.H>
 #include <algorithm>
+#include <iostream>
 
 Caret::Caret(std::size_t position, Point screen, Point extents, Point caret):
 	_position(position),
 	_screen(screen),
 	_extents(extents),
 	_caret(caret) {
+
+	// std::cout << _position << " @ ";
+	// std::cout << _caret._x << ":" << _caret._y << " ";
+	// std::cout << _screen._x << ":" << _screen._y << " ";
+	// std::cout << std::endl;
 }
 
 
