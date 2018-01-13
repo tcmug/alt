@@ -51,31 +51,31 @@ int main() {
    //      }
    //  }
 
-    Dictionary <const char *> dic;
-    dic.insert("a", "a");
-    dic.insert("abba", "abba");
-    dic.insert("axe", "axe");
-    dic.insert("ab", "ab");
-    //dic.insert("abb", "abb");
-    dic.insert("duplicate", "duplicate");
-    dic.insert("duplicated", "duplicae");
-    dic.insert("dupli", "dupli");
-    dic.print();
+    // Dictionary <const char *> dic;
+    // dic.insert("a", "a");
+    // dic.insert("abba", "abba");
+    // dic.insert("axe", "axe");
+    // dic.insert("ab", "ab");
+    // //dic.insert("abb", "abb");
+    // dic.insert("duplicate", "duplicate");
+    // dic.insert("duplicated", "duplicae");
+    // dic.insert("dupli", "dupli");
+    // dic.print();
 
-    const char *str = "nothing abba axe bob ab abb duplicate dupli axe";
-    Dictionary <const char *>::Result res = dic.scan(str);
-    std::cout << str << std::endl;
-    while (res.next()) {
-        if (res.getCurrentNode()->getValue()) {
-            std::cout << " > " << res.getCurrentNode()->getValue() << " length: " << res.getLength() << std::endl;
-            std::cout << " @ " << res.getAt() << std::endl;
-        }
-        else {
-            std::cout << " > ROOT " << res.getLength() << std::endl;
-            std::cout << " @ " << res.getAt() << std::endl;
-        }
-        std::cout << std::endl;
-    }
+    // const char *str = "nothing abba axe bob ab abb duplicate dupli axe";
+    // Dictionary <const char *>::Result res = dic.scan(str);
+    // std::cout << str << std::endl;
+    // while (res.next()) {
+    //     if (res.getCurrentNode()->getValue()) {
+    //         std::cout << " > " << res.getCurrentNode()->getValue() << " length: " << res.getLength() << std::endl;
+    //         std::cout << " @ " << res.getAt() << std::endl;
+    //     }
+    //     else {
+    //         std::cout << " > ROOT " << res.getLength() << std::endl;
+    //         std::cout << " @ " << res.getAt() << std::endl;
+    //     }
+    //     std::cout << std::endl;
+    // }
 
 	Fl::scheme("gleam");
     Fl_Double_Window win(500, 500);

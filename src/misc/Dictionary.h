@@ -175,10 +175,6 @@ class Dictionary {
             return root.insert(key, value, type);
         }
 
-        void print() {
-            root.print(0);
-        }
-
         Result scan(const char *str, const char *end = 0) {
             return Result(&root, str, end);
         }
