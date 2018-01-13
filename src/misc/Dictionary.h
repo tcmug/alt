@@ -59,7 +59,7 @@ class Dictionary {
                     _cursor = _at;
                     _matchLength = 0;
 
-                    while (_matchLength == 0 && _at < _end) {
+                    while (_matchLength == 0 && _cursor < _end) {
                         _nextNode = _currentNode->match(_cursor, &_matchLength);
                         if (_matchLength == 0) {
                             _cursor++;
