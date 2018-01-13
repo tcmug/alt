@@ -5,17 +5,7 @@
 
 #include <exception>
 #include <iostream>
-
-/*
-
-Node
-    .Dict (a..z)
-        -> Node
-        -> Node
-        -> Node
-
-
-*/
+#include <string.h>
 
 template <class VALUE>
 class Dictionary {
@@ -138,8 +128,6 @@ class Dictionary {
                     _type = t;
                 }
 
-
-
             public:
 
                 Node(NODETYPE type): _type(type) {
@@ -155,18 +143,6 @@ class Dictionary {
                     catch (std::exception &e) {
                         return 0;
                     }
-                }
-
-                void print(int depth = 0) {
-                    // std::string pad = std::string(depth * 2, ' ');
-                    // for (auto i : _items) {
-                    //     std::cout << pad << i.first << ": ";
-                    //     if (i.second->_type != NODE) {
-                    //         std::cout << i.second->_value;
-                    //     }
-                    //     std::cout << std::endl;
-                    //     i.second->print(depth + 1);
-                    // }
                 }
 
                 Node *insert(std::string key, VALUE value, NODETYPE type = SINGLE) {

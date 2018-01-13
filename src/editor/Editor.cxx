@@ -191,7 +191,7 @@ void Editor::draw() {
 	fl_font(_font, _fontSize);
 	fl_color(7);
 
-	Formatting::Result res = _format->scan(_file.getContent());
+	Formatting::Result res = _format->scan(_file.getContent(), _file.getContent() + _file.getLength());
 
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
@@ -225,7 +225,7 @@ void Editor::draw() {
 
 DrawContext Editor::coordinateToContext(const Point &coordinate) {
 
-	Formatting::Result res = _format->scan(_file.getContent());
+	Formatting::Result res = _format->scan(_file.getContent(), _file.getContent() + _file.getLength());
 
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
@@ -259,7 +259,7 @@ DrawContext Editor::coordinateToContext(const Point &coordinate) {
 
 DrawContext Editor::caretToContext(const Point &caretPosition) {
 
-	Formatting::Result res = _format->scan(_file.getContent());
+	Formatting::Result res = _format->scan(_file.getContent(), _file.getContent() + _file.getLength());
 
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
@@ -355,9 +355,13 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	_format->getRoot()->setValue(new Element(0xA0A0A000));
 	ElementNewLine *eol = new ElementNewLine(0xFF00FF00);
 	Element *c2 = new Element(0x00FF0000);
+	ElementTab *tab = new ElementTab(0x80808000);
 	_format->insert("\n", eol);
+	_format->insert("\t", tab);
+	_format->insert("本", c2);
 
 	_format->insert("Permission", c2);
+
 
 	/*
 	Element *c2 = new Element(0x00FF0000);
