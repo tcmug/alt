@@ -9,6 +9,7 @@
 #include <FL/Fl_Scroll.H>
 #include <math.h>
 
+#include <algorithm>
 #include <memory.h>
 #include <map>
 #include <string>
