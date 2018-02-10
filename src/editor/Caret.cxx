@@ -51,6 +51,9 @@ bool Caret::operator == (const Caret& other) const {
 void Caret::report() {
 }
 
+#define IS_PRINTABLE(c) ((static_cast<unsigned char>(c) < 0x80) || (static_cast<unsigned char>(c) > 0xBF))
+
+
 
 void Caret::notify(Event *event_in) {
 
@@ -61,24 +64,24 @@ void Caret::notify(Event *event_in) {
 
 		case EditorEvent::MOVE_LEFT:
 			if (_position == event->_position) {
-				if (_position > 0) {
+				do {
 					_position--;
-					markDirty();
-				}
+				} while ((_position > 0) && !IS_PRINTABLE(source->_file.getContent()[_position]));
+				markDirty();
 			}
 		break;
 
 		case EditorEvent::MOVE_RIGHT:
 			if (_position == event->_position) {
-				if (_position < source->_file.getLength() - 1) {
+				do {
 					_position++;
-					markDirty();
-				}
+				} while ((_position < source->_file.getLength() - 1) && !IS_PRINTABLE(source->_file.getContent()[_position]));
+				markDirty();
 			}
 		break;
 
 		case EditorEvent::MOVE_UP:
-			if (_position == event->_position) {
+			if (_position == event->_position && _caret._y > 1) {
 				Point caret(_caret._x, _caret._y - 1);
 				DrawContext ctx = source->caretToContext(caret);
 				_position = ctx._position;
@@ -94,17 +97,14 @@ void Caret::notify(Event *event_in) {
 				markDirty();
 			}
 		break;
-/*
+
 		case EditorEvent::ERASE_STRING:
-			if (position >= event->position) {
-				if (position > event->string.length())
-					position -= event->string.length();
-				else
-					position = 0;
-				//mark_dirty();
+			if (_position >= event->_position) {
+				_position -= event->_string.length();
+				markDirty();
 			}
 		break;
-*/
+
 		case EditorEvent::INSERT_STRING:
 			if (_position >= event->_position) {
 				_position += event->_string.length();

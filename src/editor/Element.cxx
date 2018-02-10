@@ -134,14 +134,15 @@ void ElementNewLine::print(DrawContext *ctx) {
 
 		case DrawContext::POSITION: {
 
-			if ((ctx->_stopPosition - ctx->_position) <= length) {
+			// Is the position within this Element?
+			if ((ctx->_stopPosition - ctx->_position) < length) {
 				length = ctx->_stopPosition - ctx->_position;
 				ctx->_stopConditionMet = true;
 			}
 
-			// Not on this row?
-			if (ctx->_stopY >= ctx->_y)
-				break;
+			// // Not on this row?
+			// if (ctx->_stopY >= ctx->_y)
+			// 	break;
 
 			const char *at = ctx->_result->getAt();
 

@@ -98,11 +98,13 @@ int Editor::handle(int e) {
 				else if (Fl::event_text()[0] == '\r') {
 					insert("\n", 1);
 				}
+				else if (Fl::event_key() == FL_BackSpace) {
+					erase(1);
+				}
 				else {
 					insert(Fl::event_text(), Fl::event_length());
 				}
 				redraw();
-				//std::cout << Fl::event_text() << std::endl;
 			}
 			ret = 1;
 			break;
@@ -133,7 +135,6 @@ int Editor::handle(int e) {
 
 
 void Editor::insert(const char *str, size_t length) {
-	int i = 1;
 
 	EditorEvent event(EditorEvent::INSERT_STRING, 0);
 	event._string = str;
@@ -141,6 +142,26 @@ void Editor::insert(const char *str, size_t length) {
 	for (auto caret : _carets) {
 		event._position = caret->_position;
 		_file.insert(caret->_position, str);
+		notify(&event);
+	}
+}
+
+
+void Editor::erase(size_t length) {
+
+	EditorEvent event(EditorEvent::ERASE_STRING, 0);
+
+	for (auto caret : _carets) {
+		event._position = caret->_position;
+		std::size_t temp_pos = caret->_position;
+		int bytes = 0;
+		do {
+			bytes++;
+			temp_pos--;
+		} while ((temp_pos > 0) && !IS_PRINTABLE(_file.getContent()[temp_pos]));
+
+		event._string = std::string(_file.getContent(), temp_pos, bytes);
+		_file.erase(temp_pos, bytes);
 		notify(&event);
 	}
 }
@@ -287,8 +308,6 @@ DrawContext Editor::caretToContext(const Point &caretPosition) {
 
 	return ctx;
 }
-
-
 
 
 

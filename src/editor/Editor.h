@@ -30,6 +30,7 @@ class Editor: public Fl_Widget, public Subject {
 		void draw();
 
 		void insert(const char *str, size_t length);
+		void erase(size_t length);
 		void left();
 		void right();
 		void up();
