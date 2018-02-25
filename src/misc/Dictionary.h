@@ -40,6 +40,16 @@ class Dictionary {
                     }
                 }
 
+                Result(): _currentNode(0),
+                    _previousNode(0),
+                    _nextNode(0),
+                    _rootNode(0),
+                    _prevEnd(0),
+                    _at(0),
+                    _end(0),
+                    _length(0) {
+                }
+
                 bool next() {
 
                     _at += _length;
@@ -49,7 +59,6 @@ class Dictionary {
                         _nextNode = 0;
                         _length = _matchLength;
                         _matchLength = 0;
-                        // std::cout << "existing match" << std::endl;
                         return true;
                     }
                     else {

@@ -18,6 +18,24 @@ void Quit_CB(Fl_Widget *, void *) {
     exit(0);
 }
 
+// void cb(Fl_Widget *wid, clipboard_viewer *tabs)
+// {
+//   if (Fl::clipboard_contains(Fl::clipboard_image)) {
+//     Fl::paste(*tabs, 1, Fl::clipboard_image); // try to find image in the clipboard
+//     return;
+//   }
+//   if (Fl::clipboard_contains(Fl::clipboard_plain_text)) Fl::paste(*tabs, 1, Fl::clipboard_plain_text); // also try to find text
+// }
+
+
+void clip_callback(int source, void *data) { // called after clipboard was changed or at application activation
+  if (Fl::clipboard_contains(Fl::clipboard_plain_text)) {
+    //std::cout << "clip" << std::endl;
+    Fl::paste(*(Editor *)data, 1, Fl::clipboard_plain_text);
+  }
+}
+
+
 // MAIN
 int main() {
 
@@ -86,10 +104,11 @@ int main() {
 		// menu->add("Edit/Submenu/Bbb");
 
      	Fl_Scroll scroll(0, 0, 500, 500);
-            Editor editor(0, 0, 1000, 2000);
-        scroll.end();
+        Editor editor(0, 0, 500, 500);
+        Fl::add_clipboard_notify(clip_callback, &editor);
+      scroll.end();
     win.end();
     win.resizable(editor);
-	win.show();
-    return (Fl::run());
+	  win.show();
+  return (Fl::run());
 }

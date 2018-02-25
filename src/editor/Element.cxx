@@ -169,14 +169,19 @@ void ElementNewLine::print(DrawContext *ctx) {
 	ctx->_column = 1;
 	ctx->_x = ctx->_leftMargin;
 	ctx->_y += fl_height();
-}
 
+	if (ctx->_lineStates->size() < ctx->_row) {
+		ctx->_lineStates->resize(ctx->_row + 100);
+	}
+
+	(*ctx->_lineStates)[ctx->_row]._start = ctx->_result->getAt() + ctx->_result->getLength();
+	(*ctx->_lineStates)[ctx->_row]._result = *ctx->_result;
+}
 
 
 
 void ElementTab::print(DrawContext *ctx) {
 
-	const char *at = ctx->_result->getAt();
 	size_t length = ctx->_result->getLength();
 
 	float charWidth = 50;

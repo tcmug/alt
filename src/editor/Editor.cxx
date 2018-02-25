@@ -18,8 +18,8 @@
 
 
 
-bool compareCaret(Caret &a, Caret &b) {
-    return (a._position < b._position);
+bool compareCaret(Caret *a, Caret *b) {
+    return (a->_position == b->_position);
 }
 
 
@@ -65,9 +65,17 @@ int Editor::handle(int e) {
 			ret = 1;                // enables receiving keyboard events
 			break;
 
+		case FL_PASTE:
+			std::cout << Fl::event_text() << std::endl;
+			break;
+
 		case FL_KEYDOWN:            // keyboard key pushed
 			if (Fl::event_state() & FL_META) {
 				switch (Fl::event_text()[0]) {
+					case 'v':
+						insert("Hello\nworld", 11);
+						redraw();
+					break;
 					case '-':
 						if (_fontSize > 5) {
 							_fontSize--;
@@ -136,6 +144,10 @@ int Editor::handle(int e) {
 
 void Editor::insert(const char *str, size_t length) {
 
+    // Sort carets in the expected format (top to bottom).
+    // std::sort(_carets.begin(), _carets.end(), compareCaret);
+    _carets.erase(unique(_carets.begin(), _carets.end(), compareCaret), _carets.end());
+
 	EditorEvent event(EditorEvent::INSERT_STRING, 0);
 	event._string = str;
 
@@ -152,15 +164,20 @@ void Editor::erase(size_t length) {
 	EditorEvent event(EditorEvent::ERASE_STRING, 0);
 
 	for (auto caret : _carets) {
+
 		event._position = caret->_position;
 		std::size_t temp_pos = caret->_position;
 		int bytes = 0;
-		do {
-			bytes++;
-			temp_pos--;
-		} while ((temp_pos > 0) && !IS_PRINTABLE(_file.getContent()[temp_pos]));
+
+		for (int i = 0; i < length && temp_pos > 0; i++) {
+			do {
+				bytes++;
+				temp_pos--;
+			} while ((temp_pos > 0) && !IS_PRINTABLE(_file.getContent()[temp_pos]));
+		}
 
 		event._string = std::string(_file.getContent(), temp_pos, bytes);
+		std::cout << event._string << std::endl;
 		_file.erase(temp_pos, bytes);
 		notify(&event);
 	}
@@ -215,18 +232,32 @@ void Editor::draw() {
 
 	Formatting::Result res = _format->scan(_file.getContent(), _file.getContent() + _file.getLength());
 
+	// No linestates?
+	//  - Render all lines
+	// Linestates?
+	// 	- Find first that is visible
+	// 	- Render until end of line
+	// Insert & Erase?
+	//  - Clear states from first changed line until end
+
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
 
 	DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
 	ctx._leftMargin = sx;
+	int may = 0, max = 0;
 
 	while (res.next()) {
 		res.getCurrentNode()->getValue()->print(&ctx);
-		// No need to render past the bottom screen.
-		if (ctx._y > parent()->h()) {
-			break;
+		may = ctx._y-y();
+		if (max < ctx._x-x()) {
+			max = ctx._x-x();
 		}
+	}
+
+	max = 100 * (ceil(max / 100) + 1);
+	if (h() != may || w() != max) {
+		resize(x(), y(), max, may);
 	}
 
 	for (auto &caret : _carets) {
@@ -240,6 +271,12 @@ void Editor::draw() {
 			caret->markClean();
 		}
 		caret->render(ctx);
+	}
+
+	for (int i = 0; i < _lineStates.size(); i++) {
+		if (_lineStates[i]._start) {
+			std::cout << i << ": " << _lineStates[i]._start[0] << std::endl;
+		}
 	}
 }
 
@@ -365,7 +402,6 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	}
 */
 	_fontSize = 14;
-
 	_file.read("testfile.txt");
 
 	// _content = (char*)malloc(512);
