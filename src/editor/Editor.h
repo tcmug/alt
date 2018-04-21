@@ -22,6 +22,9 @@ class Editor: public Fl_Widget, public Subject {
 		int _font;
 		int _fontSize;
 
+		bool _mouseDown;
+		int _trackColumn, _trackRow;
+
 		File _file;
 		LineStates _lineStates;
 		std::vector <Caret*> _carets;

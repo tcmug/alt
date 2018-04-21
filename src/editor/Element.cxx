@@ -160,22 +160,22 @@ void ElementNewLine::print(DrawContext *ctx) {
 
 	}
 
-	// if (ctx->_render) {
-	// 	fl_color(_color);
-	// 	fl_draw("\u2424", ctx->_x, ctx->_y);
-	// }
+
 	ctx->_position += length;
 	ctx->_row++;
 	ctx->_column = 1;
 	ctx->_x = ctx->_leftMargin;
 	ctx->_y += fl_height();
 
+	// @TODO: LOUSY PERFORMANCE HERE
 	if (ctx->_lineStates->size() < ctx->_row) {
-		ctx->_lineStates->resize(ctx->_row + 100);
+		ctx->_lineStates->resize(ctx->_row + 1);
 	}
 
-	(*ctx->_lineStates)[ctx->_row]._start = ctx->_result->getAt() + ctx->_result->getLength();
-	(*ctx->_lineStates)[ctx->_row]._result = *ctx->_result;
+	(*ctx->_lineStates)[ctx->_row-1]._y = ctx->_y - ctx->_sy;
+	(*ctx->_lineStates)[ctx->_row-1]._start = ctx->_result->getAt() + ctx->_result->getLength();
+	(*ctx->_lineStates)[ctx->_row-1]._result = *ctx->_result;
+
 }
 
 

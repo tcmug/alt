@@ -28,41 +28,53 @@ int Editor::handle(int e) {
 
 	switch (e) {
 
-		case FL_PUSH: {
-			Point caret(Fl::event_x(), Fl::event_y());
+		case FL_PUSH:
+			_mouseDown = true;
 
-			DrawContext ctx = coordinateToContext(caret);
+			if (_mouseDown) {
+				Point caret(Fl::event_x(), Fl::event_y());
 
-			caret.set(ctx._stopColumn, ctx._stopRow);
+				DrawContext ctx = coordinateToContext(caret);
 
-			ctx = caretToContext(caret);
+				caret.set(ctx._stopColumn, ctx._stopRow);
+				_trackColumn = ctx._stopColumn;
+				_trackRow = ctx._stopRow;
 
-			if (!(Fl::event_state() & FL_META)) {
-				clearCarets();
+				ctx = caretToContext(caret);
+
+				if (!(Fl::event_state() & FL_META)) {
+					clearCarets();
+				}
+
+				Point pt(
+					(-x()) + (ctx._x),
+					(-y()) + (ctx._y + fl_descent() - fl_height())
+				);
+
+				addCaret(new Caret(
+						ctx._position,
+						pt,
+						Point(
+							2,
+							ctx._charHeight
+						),
+						caret
+				));
+
+				redraw();
 			}
 
-			Point pt(
-				(-x()) + (ctx._x),
-				(-y()) + (ctx._y + fl_descent() - fl_height())
-			);
+			return 1;
+		break;
 
-			addCaret(new Caret(
-					ctx._position,
-					pt,
-					Point(
-						2,
-						ctx._charHeight
-					),
-					caret
-			));
-
-			redraw();
-		}
+		case FL_RELEASE:
+			_mouseDown = false;
+			return 1;
 		break;
 
 		case FL_FOCUS:
 		case FL_UNFOCUS:
-			ret = 1;                // enables receiving keyboard events
+			ret = 1;
 			break;
 
 		case FL_PASTE:
@@ -132,8 +144,47 @@ int Editor::handle(int e) {
             ret = 1;
             break;
 
-		case FL_MOVE:
-			//printf("x=%d y=%d\n", (int)Fl::event_x(), (int)Fl::event_y());
+        case FL_DRAG:
+		//case FL_MOVE:
+			if (_mouseDown) {
+				Point caret(Fl::event_x(), Fl::event_y());
+
+				DrawContext ctx = coordinateToContext(caret);
+
+				if (_trackColumn == ctx._stopColumn &&
+					_trackRow == ctx._stopRow) {
+					ret = 1;
+					break;
+				}
+
+				caret.set(ctx._stopColumn, ctx._stopRow);
+
+				_trackColumn = ctx._stopColumn;
+				_trackRow = ctx._stopRow;
+
+				ctx = caretToContext(caret);
+
+				if (!(Fl::event_state() & FL_META)) {
+					clearCarets();
+				}
+
+				Point pt(
+					(-x()) + (ctx._x),
+					(-y()) + (ctx._y + fl_descent() - fl_height())
+				);
+
+				addCaret(new Caret(
+						ctx._position,
+						pt,
+						Point(
+							2,
+							ctx._charHeight
+						),
+						caret
+				));
+
+				redraw();
+			}
 			ret = 1;
 			break;
 	}
@@ -177,7 +228,7 @@ void Editor::erase(size_t length) {
 		}
 
 		event._string = std::string(_file.getContent(), temp_pos, bytes);
-		std::cout << event._string << std::endl;
+		// std::cout << event._string << std::endl;
 		_file.erase(temp_pos, bytes);
 		notify(&event);
 	}
@@ -217,8 +268,6 @@ void Editor::down() {
 		event._position = caret->_position;
 		notify(&event);
 	}
-
-	std::cout << std::endl;
 }
 
 
@@ -236,28 +285,58 @@ void Editor::draw() {
 	//  - Render all lines
 	// Linestates?
 	// 	- Find first that is visible
-	// 	- Render until end of line
+	// 	- Render until end of viewport
 	// Insert & Erase?
 	//  - Clear states from first changed line until end
 
 	float sx = x();
 	float sy = (float)y() - fl_descent() + fl_height();
-
-	DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
-	ctx._leftMargin = sx;
 	int may = 0, max = 0;
 
-	while (res.next()) {
-		res.getCurrentNode()->getValue()->print(&ctx);
-		may = ctx._y-y();
-		if (max < ctx._x-x()) {
-			max = ctx._x-x();
+	DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
+
+	if (_lineStates.size() > 0) {
+
+		int i = 0;
+		for (auto &line : _lineStates) {
+			if (line._y + y() >= 0) {
+				res = line._result;
+				ctx._y = line._y + y();
+				break;
+			}
+			i++;
+		}
+
+		ctx._row = i + 1;
+
+		// Render all lines
+		ctx._leftMargin = sx;
+
+		while (res.next()) {
+			res.getCurrentNode()->getValue()->print(&ctx);
+			if (ctx._y > parent()->h()) {
+				break;
+			}
 		}
 	}
+	else {
 
-	max = 100 * (ceil(max / 100) + 1);
-	if (h() != may || w() != max) {
-		resize(x(), y(), max, may);
+		// Render all lines
+		ctx._leftMargin = sx;
+
+		while (res.next()) {
+			res.getCurrentNode()->getValue()->print(&ctx);
+			may = ctx._y-y();
+			if (max < ctx._x-x()) {
+				max = ctx._x-x();
+			}
+		}
+
+		max = 100 * (ceil(max / 100) + 1);
+		if (h() != may || w() != max) {
+			resize(x(), y(), max, may);
+		}
+
 	}
 
 	for (auto &caret : _carets) {
@@ -273,11 +352,11 @@ void Editor::draw() {
 		caret->render(ctx);
 	}
 
-	for (int i = 0; i < _lineStates.size(); i++) {
-		if (_lineStates[i]._start) {
-			std::cout << i << ": " << _lineStates[i]._start[0] << std::endl;
-		}
-	}
+	// for (int i = 0; i < _lineStates.size(); i++) {
+	// 	if (_lineStates[i]._start) {
+	// 		std::cout << i << ": " << _lineStates[i]._start[0] << std::endl;
+	// 	}
+	// }
 }
 
 
@@ -297,6 +376,8 @@ DrawContext Editor::coordinateToContext(const Point &coordinate) {
 	ctx._stopX         = coordinate._x;
 	ctx._stopY         = coordinate._y;
 	ctx._stopExact     = false;
+
+	// TODO: Use linestates here
 
 	while (res.next()) {
 		res.getCurrentNode()->getValue()->print(&ctx);
@@ -383,6 +464,7 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	box(FL_FLAT_BOX);
 	color(0);
 
+	_mouseDown = false;
 	_font = FL_COURIER;
 /*
 	std::map <std::string, int> fonts;
@@ -412,6 +494,7 @@ Editor::Editor(int X,int Y,int W,int H,const char*L) : Fl_Widget(X,Y,W,H,L) {
 	ElementNewLine *eol = new ElementNewLine(0xFF00FF00);
 	Element *c2 = new Element(0x00FF0000);
 	ElementTab *tab = new ElementTab(0x80808000);
+
 	_format->insert("\n", eol);
 	_format->insert("\t", tab);
 	_format->insert("本", c2);

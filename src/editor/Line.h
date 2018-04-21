@@ -8,9 +8,10 @@
 class Line {
 	public:
 
-		Line(): _start(0), _result() {}
+		Line(): _start(0), _y(-1), _result() {}
 
 		const char *_start;
+		int _y;
 		FormattingResult _result;
 };
 
