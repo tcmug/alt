@@ -33,8 +33,9 @@ class Dictionary {
                     _rootNode(cn),
                     _prevEnd(0),
                     _at(at),
-                    _end(end),
-                    _length(0) {
+                    _length(0),
+                    _start(at),
+                    _end(end) {
                     if (!_end) {
                         _end = at + strlen(at);
                     }
@@ -46,6 +47,7 @@ class Dictionary {
                     _rootNode(0),
                     _prevEnd(0),
                     _at(0),
+                    _start(0),
                     _end(0),
                     _length(0) {
                 }
@@ -99,6 +101,14 @@ class Dictionary {
                     return _at;
                 }
 
+                const char *getStart() const {
+                    return _start;
+                }
+
+                void setEnd(const char *end) {
+                    _end = end;
+                }
+
                 size_t getLength() const {
                     return _length;
                 }
@@ -113,6 +123,7 @@ class Dictionary {
                 const char *_at;
                 const char *_cursor;
                 const char *_prevEnd;
+                const char *_start;
                 const char *_end;
 
                 size_t _length;

@@ -9,6 +9,7 @@
 #include <FL/Fl_Scroll.H>
 #include <math.h>
 
+#include <chrono>
 #include <algorithm>
 #include <memory.h>
 #include <map>
@@ -16,12 +17,29 @@
 #include <iostream>
 
 
+#define TIMING
+#ifdef TIMING
+#define INIT_TIMER auto start = std::chrono::high_resolution_clock::now();
+#define START_TIMER  start = std::chrono::high_resolution_clock::now();
+#define STOP_TIMER(name)  std::cout << "RUNTIME of " << name << ": " << \
+    std::chrono::duration_cast<std::chrono::milliseconds>( \
+            std::chrono::high_resolution_clock::now()-start \
+    ).count() << " ms " << std::endl;
+#else
+#define INIT_TIMER
+#define START_TIMER
+#define STOP_TIMER(name)
+#endif
 
 
 bool compareCaret(Caret *a, Caret *b) {
     return (a->_position == b->_position);
 }
 
+
+bool sortCompareCaret(Caret *a, Caret *b) {
+    return (a->_position < b->_position);
+}
 
 int Editor::handle(int e) {
 	int ret = Fl_Widget::handle(e);
@@ -195,26 +213,52 @@ int Editor::handle(int e) {
 
 void Editor::insert(const char *str, size_t length) {
 
+	INIT_TIMER
+	START_TIMER
+
     // Sort carets in the expected format (top to bottom).
-    // std::sort(_carets.begin(), _carets.end(), compareCaret);
+    std::sort(_carets.begin(), _carets.end(), sortCompareCaret);
     _carets.erase(unique(_carets.begin(), _carets.end(), compareCaret), _carets.end());
 
 	EditorEvent event(EditorEvent::INSERT_STRING, 0);
 	event._string = str;
 
+	bool linestateCleared = false;
+	_lineStates.clear();
 	for (auto caret : _carets) {
+
+		if (!linestateCleared) {
+			DrawContext tctx = positionToContext(caret->_position);
+			_lineStates.erase(_lineStates.begin() + (tctx._row - 1), _lineStates.end());
+			linestateCleared = true;
+		}
+
 		event._position = caret->_position;
 		_file.insert(caret->_position, str);
 		notify(&event);
 	}
+
+	STOP_TIMER("insert")
 }
 
 
 void Editor::erase(size_t length) {
 
+	INIT_TIMER
+	START_TIMER
+
 	EditorEvent event(EditorEvent::ERASE_STRING, 0);
 
+	bool linestateCleared = false;
+	_lineStates.clear();
+
 	for (auto caret : _carets) {
+
+		if (!linestateCleared) {
+			DrawContext tctx = positionToContext(caret->_position);
+			_lineStates.erase(_lineStates.begin() + (tctx._row - 1), _lineStates.end());
+			linestateCleared = true;
+		}
 
 		event._position = caret->_position;
 		std::size_t temp_pos = caret->_position;
@@ -232,6 +276,8 @@ void Editor::erase(size_t length) {
 		_file.erase(temp_pos, bytes);
 		notify(&event);
 	}
+
+	STOP_TIMER("erase")
 }
 
 
@@ -294,35 +340,37 @@ void Editor::draw() {
 	int may = 0, max = 0;
 
 	DrawContext ctx(x(), y(), sx, sy, &res, &_lineStates);
+	ctx._leftMargin = sx;
+
+	INIT_TIMER
+	START_TIMER
 
 	if (_lineStates.size() > 0) {
 
-		int i = 0;
+		int row = 0;
 		for (auto &line : _lineStates) {
 			if (line._y + y() >= 0) {
-				res = line._result;
-				ctx._y = line._y + y();
 				break;
 			}
-			i++;
+			res = line._result;
+			// _result contains wrong string ending here &&
+			// it nastily cuts off the rendering and pointer selection
+			res.setEnd(_file.getContent() + _file.getLength());
+			ctx._y = line._y + y();
+			row++;
 		}
 
-		ctx._row = i + 1;
-
-		// Render all lines
-		ctx._leftMargin = sx;
+		ctx._row = row;
 
 		while (res.next()) {
 			res.getCurrentNode()->getValue()->print(&ctx);
-			if (ctx._y > parent()->h()) {
-				break;
-			}
+			// if (ctx._y > parent()->h()) {
+			// 	break;
+			// }
 		}
+
 	}
 	else {
-
-		// Render all lines
-		ctx._leftMargin = sx;
 
 		while (res.next()) {
 			res.getCurrentNode()->getValue()->print(&ctx);
@@ -339,6 +387,9 @@ void Editor::draw() {
 
 	}
 
+	STOP_TIMER("text render")
+	START_TIMER
+
 	for (auto &caret : _carets) {
 		if (caret->isDirty()) {
 			DrawContext tctx = positionToContext(caret->_position);
@@ -352,11 +403,8 @@ void Editor::draw() {
 		caret->render(ctx);
 	}
 
-	// for (int i = 0; i < _lineStates.size(); i++) {
-	// 	if (_lineStates[i]._start) {
-	// 		std::cout << i << ": " << _lineStates[i]._start[0] << std::endl;
-	// 	}
-	// }
+	STOP_TIMER("caret render")
+
 }
 
 
@@ -378,6 +426,23 @@ DrawContext Editor::coordinateToContext(const Point &coordinate) {
 	ctx._stopExact     = false;
 
 	// TODO: Use linestates here
+
+	if (_lineStates.size() > 0) {
+
+		int row = 1;
+		for (auto &line : _lineStates) {
+			if (line._y + y() >= 0) {
+				break;
+			}
+			res = line._result;
+			ctx._y = line._y + y();
+			row++;
+		}
+		ctx._row = row;
+
+		// Render all lines
+		ctx._leftMargin = sx;
+	}
 
 	while (res.next()) {
 		res.getCurrentNode()->getValue()->print(&ctx);
@@ -443,6 +508,17 @@ DrawContext Editor::positionToContext(std::size_t position) {
 	ctx._stopCondition = DrawContext::POSITION;
 	ctx._stopPosition  = position;
 	ctx._stopExact     = false;
+
+	std::cout << std::endl;
+	if (_lineStates.size() > 0) {
+		for (auto &line : _lineStates) {
+			line.report();
+			if (line._position >= position) {
+				break;
+			}
+		}
+	}
+	std::cout << std::endl;
 
 	while (res.next()) {
 		res.getCurrentNode()->getValue()->print(&ctx);

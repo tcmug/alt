@@ -8,11 +8,21 @@
 class Line {
 	public:
 
-		Line(): _start(0), _y(-1), _result() {}
+		Line(): _position(0), _y(-1), _result(), _row(-1) {
+		}
 
-		const char *_start;
+		Line(int position, int y, FormattingResult result, int row): _position(position), _y(y), _result(result), _row(row) {
+		}
+
+		int _position;
 		int _y;
+		int _row;
+		int _column;
 		FormattingResult _result;
+
+		void report() {
+			std::cout << _row << "\t" << _y << "\t" << _position << std::endl;
+		}
 };
 
 typedef std::vector <Line> LineStates;

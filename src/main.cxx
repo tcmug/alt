@@ -14,19 +14,16 @@
 #include "misc/Dictionary.h"
 #include "misc/TokenTree.h"
 
+#include "misc/list_node.hpp"
+
+class test {
+  public:
+    list_node <test*> list_my_a;
+};
+
 void Quit_CB(Fl_Widget *, void *) {
     exit(0);
 }
-
-// void cb(Fl_Widget *wid, clipboard_viewer *tabs)
-// {
-//   if (Fl::clipboard_contains(Fl::clipboard_image)) {
-//     Fl::paste(*tabs, 1, Fl::clipboard_image); // try to find image in the clipboard
-//     return;
-//   }
-//   if (Fl::clipboard_contains(Fl::clipboard_plain_text)) Fl::paste(*tabs, 1, Fl::clipboard_plain_text); // also try to find text
-// }
-
 
 void clip_callback(int source, void *data) { // called after clipboard was changed or at application activation
   if (Fl::clipboard_contains(Fl::clipboard_plain_text)) {
@@ -36,9 +33,20 @@ void clip_callback(int source, void *data) { // called after clipboard was chang
 }
 
 
+
 // MAIN
 int main() {
 
+  // test *first = new test();
+  // for (int i = 0; i < 10; i++) {
+  //   first->mylist.insert(&(new test())->mylist);
+  // }
+
+  // for (auto a = first->mylist.begin(); a != first->mylist.end(); a = a->get_next()) {
+  //   std::cout << x++ << std::endl;
+  // }
+
+  // exit(1);
    //  TokenTree <const char, const char *> tree;
 
    // try {
